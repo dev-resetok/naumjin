@@ -8,14 +8,14 @@ import React from "react";
  * @param {function} onChange - 값 변경 핸들러
  * @param {string} placeholder - 플레이스홀더
  */
-export function Input({ 
-  label, 
-  type = "text", 
-  value, 
-  onChange, 
+export function Input({
+  label,
+  type = "text",
+  value,
+  onChange,
   placeholder = "",
   required = false,
-  className = ""
+  className = "",
 }) {
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
@@ -42,13 +42,25 @@ export function Input({
  * @param {Array} options - 선택 옵션 배열
  * @param {Array} selected - 선택된 값 배열
  * @param {function} onChange - 선택 변경 핸들러
+ * @param {Array} disabled - 비활성화할 옵션 배열
  */
-export function CheckboxGroup({ label, options, selected = [], onChange }) {
+export function CheckboxGroup({
+  label,
+  options,
+  selected = [],
+  onChange,
+  disabled = [],
+}) {
   // 체크박스 토글 처리
   const handleToggle = (value) => {
+    // 비활성화된 옵션은 토글 불가
+    if (disabled.includes(value)) {
+      return;
+    }
+
     if (selected.includes(value)) {
       // 이미 선택된 경우 제거
-      onChange(selected.filter(item => item !== value));
+      onChange(selected.filter((item) => item !== value));
     } else {
       // 선택되지 않은 경우 추가
       onChange([...selected, value]);
@@ -57,20 +69,28 @@ export function CheckboxGroup({ label, options, selected = [], onChange }) {
 
   return (
     <div className="flex flex-col gap-3">
-      {label && <label className="text-sm font-bold text-gray-700">{label}</label>}
+      {label && (
+        <label className="text-sm font-bold text-gray-700">{label}</label>
+      )}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {options.map((option) => {
           const isSelected = selected.includes(option);
+          const isDisabled = disabled.includes(option);
+
           return (
             <button
               key={option}
               type="button"
               onClick={() => handleToggle(option)}
+              disabled={isDisabled}
               className={`
                 px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium
-                ${isSelected 
-                  ? "bg-indigo-100 border-indigo-500 text-indigo-700" 
-                  : "bg-white border-gray-300 text-gray-700 hover:border-indigo-300"
+                ${
+                  isSelected
+                    ? "bg-indigo-100 border-indigo-500 text-indigo-700"
+                    : isDisabled
+                    ? "bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed opacity-60"
+                    : "bg-white border-gray-300 text-gray-700 hover:border-indigo-300"
                 }
               `}
             >
@@ -92,11 +112,20 @@ export function CheckboxGroup({ label, options, selected = [], onChange }) {
  * @param {Array} value - [최소값, 최대값]
  * @param {function} onChange - 값 변경 핸들러
  */
-export function RangeInput({ label, min, max, value = [min, max], onChange, step = 1000 }) {
+export function RangeInput({
+  label,
+  min,
+  max,
+  value = [min, max],
+  onChange,
+  step = 1000,
+}) {
   return (
     <div className="flex flex-col gap-3">
-      {label && <label className="text-sm font-bold text-gray-700">{label}</label>}
-      
+      {label && (
+        <label className="text-sm font-bold text-gray-700">{label}</label>
+      )}
+
       <div className="space-y-3">
         <div className="flex items-center justify-between text-sm text-gray-600">
           <span>{value[0].toLocaleString()}원</span>

@@ -30,7 +30,7 @@ export default function LoginPage({ onLoginSuccess }) {
 
     // storage.js의 loginUser 함수 호출
     const result = loginUser(userId, password);
-    
+
     if (result.success) {
       alert(`${result.session.user.nickname}님, 환영합니다!`);
       // 부모 컴포넌트(App.jsx)의 상태를 업데이트

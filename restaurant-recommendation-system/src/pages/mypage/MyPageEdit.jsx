@@ -10,9 +10,14 @@ import { UserCog } from "lucide-react";
 /**
  * 내 정보 수정 페이지
  */
-export default function MyPageEdit({ session, token, handleLogout }) {
+export default function MyPageEdit({
+  session,
+  token,
+  handleLogout,
+  refreshSession,
+}) {
   const navigate = useNavigate();
-  
+
   if (!session) {
     // 이 페이지는 보호된 라우트를 통해 접근되므로 session이 항상 있어야 함
     return <div>로딩 중...</div>;
@@ -42,6 +47,12 @@ export default function MyPageEdit({ session, token, handleLogout }) {
     if (result.success) {
       setSuccess("닉네임이 성공적으로 변경되었습니다.");
       alert("정보가 수정되었습니다.");
+
+      // 세션 새로고침 (App.jsx의 상태 업데이트)
+      if (refreshSession) {
+        refreshSession();
+      }
+
       // 변경된 세션이 App.jsx에 반영되고 MyPage로 돌아감
       navigate(routes.mypage);
     } else {
