@@ -7,6 +7,7 @@ import { Input } from "@components/common/Input";
 import routes from "@utils/constants/routes";
 import { getGroupById, updateGroup } from "@utils/helpers/storage";
 import { Map, Pin, Milestone, Plus, Trash2 } from "lucide-react";
+import Layout from "@components/common/Layout";
 
 const API_KEY = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
 
@@ -124,11 +125,7 @@ export default function TripPlanPage({ session, token, handleLogout }) {
   if (!group || !session) return <div>로딩 중...</div>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
-      {/* 헤더 */}
-      <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
-        <HeaderBar session={session} handleLogout={handleLogout} />
-      </header>
+    <Layout session={session} handleLogout={handleLogout}>
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
@@ -235,6 +232,6 @@ export default function TripPlanPage({ session, token, handleLogout }) {
           </div>
         </div>
       </main>
-    </div>
+    </Layout>
   );
 }

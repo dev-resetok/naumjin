@@ -48,3 +48,8 @@ body {
 .animate-fadeIn {
   animation: fadeIn 0.3s ease-in-out;
 }
+
+/* Custom Component Classes */
+.content-panel-base {
+  @apply bg-white rounded-2xl border-2 border-indigo-200 shadow-lg;
+}

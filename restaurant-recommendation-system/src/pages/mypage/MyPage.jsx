@@ -83,7 +83,7 @@ export default function MyPage({ session, token, handleLogout }) {
       <main className="container mx-auto px-6 py-8">
         <div className="max-w-5xl mx-auto">
           {/* 프로필 헤더 */}
-          <div className="bg-white rounded-2xl p-8 border-2 border-indigo-200 shadow-lg mb-6">
+          <div className="content-panel-base p-8 mb-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-6">
                 <div className="w-24 h-24 bg-indigo-600 text-white rounded-full flex items-center justify-center text-4xl font-bold">
@@ -115,7 +115,7 @@ export default function MyPage({ session, token, handleLogout }) {
           </div>
 
           {/* 선호도 정보 */}
-          <div className="bg-white rounded-2xl p-8 border-2 border-indigo-200 shadow-lg mb-6">
+          <div className="content-panel-base p-8 mb-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2"><Heart className="w-7 h-7 text-indigo-600" />음식 선호도</h2>
               <Button variant="secondary" size="sm" onClick={handleEditPreference}>수정하기</Button>
@@ -133,7 +133,7 @@ export default function MyPage({ session, token, handleLogout }) {
           </div>
 
           {/* 참여 그룹 목록 */}
-          <div className="bg-white rounded-2xl p-8 border-2 border-indigo-200 shadow-lg">
+          <div className="content-panel-base p-8">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2"><Users className="w-7 h-7 text-indigo-600" />참여 중인 그룹</h2>
               <Button variant="secondary" size="sm" onClick={() => navigate(routes.myGroups)}>전체 보기</Button>
