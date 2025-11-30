@@ -56,6 +56,18 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
     return <div className="min-h-screen flex items-center justify-center">로딩 중...</div>;
   }
 
+  const membersWithoutPreference = group.members.filter(member => !member.preference);
+
+  // 추천 요청 핸들러
+  const handleRequestRecommendation = (dayIndex) => {
+    if (membersWithoutPreference.length > 0) {
+      const memberNames = membersWithoutPreference.map(m => m.nickname).join(', ');
+      alert(`아직 다음 멤버들이 선호도 조사를 완료하지 않았습니다: ${memberNames}`);
+      return;
+    }
+    navigate(routes.loading.replace(":groupId", groupId).replace(":dayIndex", dayIndex));
+  };
+
   const isCreator = group.creatorId === session.user.id;
   const hasRestaurants = group.restaurants && group.restaurants.length > 0;
 
@@ -120,10 +132,19 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
                 />
                 <InfoCard
                   title="여행 기간"
-                  value={`${group.tripPlan.days.length}일`}
+                  value={`${Array.isArray(group.tripPlan.days) ? group.tripPlan.days.length : 0}일`}
                   icon={<Calendar />}
                   color="purple"
                 />
+                <div className="col-span-full md:col-span-1 flex items-center justify-center">
+                  <Button
+                    variant="secondary"
+                    onClick={() => navigate(routes.tripPlan.replace(':groupId', groupId))}
+                    className="w-full"
+                  >
+                    여행 계획 수정
+                  </Button>
+                </div>
               </>
             ) : (
               <div className="col-span-2 flex items-center justify-center bg-yellow-50 rounded-lg border-2 border-yellow-200 p-4">
@@ -152,7 +173,12 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
                         {member.nickname[0]}
                       </div>
                       <div>
-                        <p className="font-medium text-gray-800">{member.nickname}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-gray-800">{member.nickname}</p>
+                          {!member.preference && (
+                            <span className="text-xs text-orange-500 font-semibold">(선호도 미설정)</span>
+                          )}
+                        </div>
                         <p className="text-sm text-gray-500">@{member.id}</p>
                       </div>
                     </div>
@@ -201,11 +227,11 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
                 <p className="text-xs text-gray-500 text-center mb-2">또는</p>
                 <h4 className="font-bold text-gray-700 text-center">다른 날짜 추천 받기</h4>
                 <div className="flex flex-col space-y-2 mt-2">
-                    {group.tripPlan.days.map((day, index) => (
+                    {Array.isArray(group.tripPlan.days) && group.tripPlan.days.map((day, index) => (
                         <Button
                             key={index}
                             variant="secondary"
-                            onClick={() => navigate(routes.loading.replace(":groupId", groupId).replace(":dayIndex", index))}
+                            onClick={() => handleRequestRecommendation(index)}
                         >
                             {index + 1}일차: {day.description} 추천 받기
                         </Button>
@@ -219,11 +245,11 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
                   각 날짜의 계획에 맞춰 식당을 추천받으세요.
                 </p>
                 <div className="flex flex-col space-y-2">
-                    {group.tripPlan.days.map((day, index) => (
+                    {Array.isArray(group.tripPlan.days) && group.tripPlan.days.map((day, index) => (
                         <Button
                             key={index}
                             variant="primary"
-                            onClick={() => navigate(routes.loading.replace(":groupId", groupId).replace(":dayIndex", index))}
+                            onClick={() => handleRequestRecommendation(index)}
                         >
                             {index + 1}일차: {day.description} 추천 받기
                         </Button>
