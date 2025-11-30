@@ -183,6 +183,7 @@ export default function TripPlanPage({ session, token, handleLogout }) {
                             <>
                                 <Marker position={currentDay.location} />
                                 <Circle 
+                                    key={`${currentDay.location.lat}-${currentDay.location.lng}`}
                                     center={currentDay.location}
                                     radius={currentDay.radius}
                                     options={{
