@@ -19,7 +19,7 @@ const routes = {
   // 여행지 및 음식 추천 페이지
   tripPlan: "/group/:groupId/trip",     // 여행 계획 수립
   foodPreference: "/group/:groupId/preference", // 음식 선호도 입력
-  loading: "/group/:groupId/loading",   // 추천 계산 중
+  loading: "/group/:groupId/loading/:dayIndex",   // 추천 계산 중
   foodResult: "/group/:groupId/result", // 추천 식당 목록
   foodDetail: "/group/:groupId/restaurant/:restaurantId", // 식당 상세 정보
   

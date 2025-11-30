@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import routes from "@utils/constants/routes";
 import { getGroupById, updateGroup } from "@utils/helpers/storage";
-import { searchPlaces } from "@utils/api/googlePlaces"; // API 호출 함수 임포트
+import { searchPlacesByLocation } from "@utils/api/googlePlaces"; // 새 API 함수 임포트
 import { Loader2 } from "lucide-react";
 
 // 딜레이 함수
@@ -11,23 +11,18 @@ function sleep(ms) {
 }
 
 /**
- * 추천 쿼리 생성 헬퍼 함수
+ * 선호도 기반 주요 키워드 생성
  * @param {Array} members - 그룹 멤버 목록 (선호도 포함)
- * @param {string} tripRegion - 여행 지역
- * @returns {string} - Google Places API에 사용할 검색 쿼리
+ * @returns {string} - 검색에 사용할 키워드 (예: "한식" 또는 "파스타")
  */
-const createSearchQuery = (members, tripRegion) => {
+const getPrimaryKeyword = (members) => {
   const categoryCounts = {};
-  
   members.forEach(member => {
-    if (member.preference?.likedCategories) {
-      member.preference.likedCategories.forEach(category => {
-        categoryCounts[category] = (categoryCounts[category] || 0) + 1;
-      });
-    }
+    member.preference?.likedCategories?.forEach(category => {
+      categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+    });
   });
 
-  // 가장 많이 선택된 카테고리 찾기
   let mostLikedCategory = "";
   let maxCount = 0;
   for (const category in categoryCounts) {
@@ -36,22 +31,15 @@ const createSearchQuery = (members, tripRegion) => {
       maxCount = categoryCounts[category];
     }
   }
-
-  if (mostLikedCategory) {
-    return `${tripRegion} ${mostLikedCategory} 맛집`;
-  }
-  
-  // 선호 카테고리가 없는 경우
-  return `${tripRegion} 맛집`;
+  return mostLikedCategory; // "한식", "일식" 등
 };
 
 /**
- * 로딩 페이지
- * - 그룹 선호도를 종합하여 Google Places API로 식당을 검색하고 결과를 저장
+ * 로딩 페이지 (일자별 추천)
  */
 export default function LoadingPage({ token }) {
   const navigate = useNavigate();
-  const { groupId } = useParams();
+  const { groupId, dayIndex } = useParams();
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState("데이터 준비 중...");
 
@@ -63,19 +51,19 @@ export default function LoadingPage({ token }) {
         return;
       }
       try {
-        // 1. 그룹 정보 및 멤버 선호도 로드 (20%)
+        // 1. 그룹 정보 및 해당 날짜의 계획 로드 (20%)
         setProgress(20);
-        setMessage("그룹 멤버들의 선호도를 종합하는 중...");
+        setMessage("여행 계획과 멤버 선호도를 분석하는 중...");
         await sleep(500);
 
         const groupResult = getGroupById(token, groupId);
-        if (!groupResult.success) {
-          throw new Error(groupResult.message);
-        }
+        if (!groupResult.success) throw new Error(groupResult.message);
         
         const group = groupResult.group;
-        if (!group.tripPlan?.region) {
-          throw new Error("여행 계획(지역)이 설정되지 않았습니다.");
+        const dayPlan = group.tripPlan?.days?.[dayIndex];
+
+        if (!dayPlan || !dayPlan.location) {
+          throw new Error("해당 날짜의 여행 계획(위치)이 설정되지 않았습니다.");
         }
 
         const members = group.members;
@@ -84,40 +72,46 @@ export default function LoadingPage({ token }) {
           throw new Error(`선호도를 입력하지 않은 멤버가 있습니다: ${membersWithoutPreference.map(m => m.nickname).join(", ")}`);
         }
 
-        // 2. Google Places API 검색 쿼리 생성 (40%)
+        // 2. 검색 키워드 생성 (40%)
         setProgress(40);
-        const query = createSearchQuery(members, group.tripPlan.region);
-        setMessage(`"${query}" (으)로 맛집을 검색합니다...`);
+        const keyword = getPrimaryKeyword(members);
+        setMessage(`'${dayPlan.description}' 근처에서 '${keyword || '음식점'}'을(를) 검색합니다...`);
         await sleep(800);
 
         // 3. Google Places API 호출 (70%)
         setProgress(70);
-        const placesResult = await searchPlaces(query);
+        // Text Search 대신 Nearby Search를 사용하는 새 함수 호출
+        const placesResult = await searchPlacesByLocation({
+            location: dayPlan.location,
+            radius: dayPlan.radius,
+            keyword: keyword || 'restaurant' // 키워드가 없으면 'restaurant'로 검색
+        });
+
         if (!placesResult.success) {
           throw new Error(placesResult.message);
         }
         
-        // (선택사항) 클라이언트 사이드 필터링: "못 먹는 음식" 키워드가 포함된 식당 제외
+        // 4. 클라이언트 사이드 필터링 (80%)
+        setProgress(80);
+        setMessage("세부 조건을 필터링 하는 중...");
         const allCannotEatKeywords = members.flatMap(m => m.preference.cannotEat || []);
         const uniqueCannotEatKeywords = [...new Set(allCannotEatKeywords)];
         
         let filteredPlaces = placesResult.places;
         if (uniqueCannotEatKeywords.length > 0) {
-            setMessage("못 먹는 음식을 제외하는 중...");
-            await sleep(500);
             filteredPlaces = placesResult.places.filter(place => {
-                const placeText = `${place.name} ${place.formatted_address}`.toLowerCase();
-                return !uniqueCannotEatKeywords.some(keyword => placeText.includes(keyword.toLowerCase()));
+                const placeText = `${place.name} ${place.types.join(' ')}`.toLowerCase();
+                return !uniqueCannotEatKeywords.some(kw => placeText.includes(kw.toLowerCase()));
             });
         }
 
-        // 4. 결과 저장 (90%)
+        // 5. 결과 저장 (90%)
         setProgress(90);
         setMessage("추천 결과를 저장하는 중...");
         await sleep(500);
 
         const updateResult = updateGroup(token, groupId, {
-          restaurants: filteredPlaces, // API 결과를 저장
+          restaurants: filteredPlaces,
           lastRecommendation: new Date().toISOString(),
         });
 
@@ -125,13 +119,11 @@ export default function LoadingPage({ token }) {
           throw new Error("결과 저장 실패: " + updateResult.message);
         }
 
-        // 5. 완료 (100%)
+        // 6. 완료 (100%)
         setProgress(100);
         setMessage("완료! 추천 결과로 이동합니다...");
         await sleep(500);
 
-        // state로 데이터를 전달하는 대신, 결과 페이지에서 직접 storage를 읽도록 변경
-        // navigate(routes.foodResult.replace(":groupId", groupId), { state: { restaurants: filteredPlaces } });
         navigate(routes.foodResult.replace(":groupId", groupId));
 
       } catch (error) {
@@ -142,7 +134,7 @@ export default function LoadingPage({ token }) {
     };
 
     processRecommendation();
-  }, [groupId, token, navigate]);
+  }, [groupId, dayIndex, token, navigate]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 flex items-center justify-center">

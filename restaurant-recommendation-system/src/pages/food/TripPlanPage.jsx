@@ -1,37 +1,60 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { GoogleMap, useJsApiLoader, Marker, Circle } from "@react-google-maps/api";
 import HeaderBar from "@common/bar/HeaderBar";
 import Button from "@common/button/Button";
+import { Input } from "@components/common/Input";
 import routes from "@utils/constants/routes";
 import { getGroupById, updateGroup } from "@utils/helpers/storage";
-import { MapPin, Calendar } from "lucide-react";
+import { Map, Pin, Milestone, Plus, Trash2 } from "lucide-react";
+
+const API_KEY = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
+
+const mapContainerStyle = {
+  width: "100%",
+  height: "400px",
+  borderRadius: "1rem",
+  border: "2px solid #e5e7eb"
+};
+
+// 기본 지도 중심 (서울)
+const defaultCenter = {
+  lat: 37.5665,
+  lng: 126.978,
+};
+
+const libraries = ["places"];
 
 /**
- * 여행 계획 페이지
- * - 여행지, 기간, 예산 설정
+ * 여행 계획 페이지 (지도 기반)
  */
 export default function TripPlanPage({ session, token, handleLogout }) {
   const navigate = useNavigate();
   const { groupId } = useParams();
-  const [group, setGroup] = useState(null);
-  
-  // 여행 계획 state
-  const [region, setRegion] = useState("");
-  const [days, setDays] = useState(3);
-  const [budget, setBudget] = useState(50000);
 
-  // 그룹 정보 로드
+  const [group, setGroup] = useState(null);
+  const [numDays, setNumDays] = useState(1);
+  const [tripDays, setTripDays] = useState([]);
+  const [activeDayIndex, setActiveDayIndex] = useState(0);
+
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: API_KEY,
+    libraries,
+  });
+
+  // 그룹 정보 및 기존 계획 로드
   useEffect(() => {
     if (token) {
       const result = getGroupById(token, groupId);
       if (result.success) {
-        const groupData = result.group;
-        setGroup(groupData);
-        // 기존 계획이 있으면 불러오기
-        if (groupData.tripPlan) {
-          setRegion(groupData.tripPlan.region);
-          setDays(groupData.tripPlan.days);
-          setBudget(groupData.tripPlan.budget);
+        setGroup(result.group);
+        if (result.group.tripPlan?.days) {
+            const existingDays = result.group.tripPlan.days;
+            setNumDays(existingDays.length);
+            setTripDays(existingDays);
+        } else {
+            // 새 계획 초기화
+            setTripDays([{ day: 1, location: null, radius: 1000, description: "" }]);
         }
       } else {
         alert(result.message);
@@ -40,156 +63,172 @@ export default function TripPlanPage({ session, token, handleLogout }) {
     }
   }, [groupId, token, navigate]);
 
-  // 여행 계획 저장
-  const handleSavePlan = (e) => {
-    e.preventDefault();
-
-    if (!region.trim()) {
-      alert("여행지를 입력해주세요.");
-      return;
-    }
-
-    if (days < 1 || days > 10) {
-      alert("여행 기간은 1일에서 10일 사이로 설정해주세요.");
-      return;
-    }
-
-    const tripPlan = {
-      region: region.trim(),
-      days: parseInt(days),
-      budget: parseInt(budget),
-      mealsPerDay: 3, // 하루 3끼 기본
-    };
-
-    const result = updateGroup(token, groupId, { tripPlan });
-
-    if (result.success) {
-      alert("여행 계획이 저장되었습니다!");
-      navigate(routes.foodPreference.replace(":groupId", groupId));
-    } else {
-      alert(`저장에 실패했습니다: ${result.message}`);
+  // 날짜 수 변경 시
+  const handleNumDaysChange = (newNumDays) => {
+    const num = Math.max(1, parseInt(newNumDays, 10) || 1);
+    setNumDays(num);
+    
+    const newTripDays = Array.from({ length: num }, (_, i) => {
+      return tripDays[i] || { day: i + 1, location: null, radius: 1000, description: "" };
+    });
+    setTripDays(newTripDays);
+    if(activeDayIndex >= num) {
+        setActiveDayIndex(num - 1);
     }
   };
 
-  if (!group || !session) {
-    return <div className="min-h-screen flex items-center justify-center">로딩 중...</div>;
-  }
+  // 지도 클릭 시
+  const onMapClick = (e) => {
+    const newLocation = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+    const newTripDays = [...tripDays];
+    newTripDays[activeDayIndex].location = newLocation;
+    setTripDays(newTripDays);
+  };
+  
+  // 반경 변경 시
+  const handleRadiusChange = (newRadius) => {
+    const radius = Math.max(100, parseInt(newRadius, 10));
+    const newTripDays = [...tripDays];
+    newTripDays[activeDayIndex].radius = radius;
+    setTripDays(newTripDays);
+  };
+  
+  // 설명 변경 시
+  const handleDescriptionChange = (newDescription) => {
+    const newTripDays = [...tripDays];
+    newTripDays[activeDayIndex].description = newDescription;
+    setTripDays(newTripDays);
+  };
+
+  // 저장
+  const handleSave = () => {
+    const hasInvalidDay = tripDays.some(day => !day.location || !day.description.trim());
+    if(hasInvalidDay) {
+        alert("모든 날짜의 위치와 설명을 입력해주세요.");
+        return;
+    }
+    
+    const tripPlan = { days: tripDays };
+    const result = updateGroup(token, groupId, { tripPlan });
+
+    if (result.success) {
+      alert("여행 계획이 저장되었습니다.");
+      navigate(routes.groupDetail.replace(":groupId", groupId));
+    } else {
+      alert(`저장 실패: ${result.message}`);
+    }
+  };
+  
+  const currentDay = tripDays[activeDayIndex];
+
+  if (!group || !session) return <div>로딩 중...</div>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
-      {/* 헤더 */}
-      <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
-        <HeaderBar session={session} handleLogout={handleLogout} />
-      </header>
+    <div className="min-h-screen bg-gray-50">
+      <HeaderBar session={session} handleLogout={handleLogout} />
 
-      {/* 메인 콘텐츠 */}
-      <main className="container mx-auto px-6 py-16">
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-2xl p-8 border-2 border-indigo-200 shadow-lg">
-            {/* 타이틀 */}
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">여행 계획 수립</h1>
-              <p className="text-gray-600">
-                {group.name}의 여행 정보를 입력하세요
-              </p>
+      <main className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-800">여행 계획 설정</h1>
+            <p className="text-gray-600 mt-2">지도를 클릭하여 각 날짜의 여행지를 설정하세요.</p>
+          </div>
+
+          {/* 여행 기간 설정 */}
+          <div className="flex items-center gap-4 mb-6 bg-white p-4 rounded-xl shadow-md border-2 border-indigo-200">
+             <label className="font-bold text-lg">여행 기간:</label>
+             <Input
+                type="number"
+                value={numDays}
+                onChange={(val) => handleNumDaysChange(val)}
+                className="w-24"
+                min="1"
+             />
+             <span className="text-lg">일</span>
+          </div>
+
+          {/* 날짜 선택 탭 */}
+          <div className="flex space-x-2 border-b-2 border-gray-200 mb-6">
+            {tripDays.map((day, index) => (
+              <button
+                key={index}
+                onClick={() => setActiveDayIndex(index)}
+                className={`px-4 py-3 font-bold transition-colors ${
+                  activeDayIndex === index
+                    ? "border-b-4 border-indigo-600 text-indigo-600"
+                    : "text-gray-500 hover:text-indigo-500"
+                }`}
+              >
+                {index + 1}일차
+              </button>
+            ))}
+          </div>
+
+          {/* 지도 및 설정 (현재 활성화된 날짜 기준) */}
+          {currentDay && (
+            <div className="bg-white p-6 rounded-xl shadow-lg border-2 border-indigo-200 space-y-6">
+                <h2 className="text-xl font-bold text-indigo-700">{activeDayIndex + 1}일차 계획</h2>
+                {loadError && <div>지도 로딩 오류: API 키를 확인해주세요.</div>}
+                {!isLoaded ? <div>지도 로딩 중...</div> : (
+                    <GoogleMap
+                        mapContainerStyle={mapContainerStyle}
+                        center={currentDay.location || defaultCenter}
+                        zoom={13}
+                        onClick={onMapClick}
+                    >
+                        {currentDay.location && (
+                            <>
+                                <Marker position={currentDay.location} />
+                                <Circle 
+                                    center={currentDay.location}
+                                    radius={currentDay.radius}
+                                    options={{
+                                        strokeColor: "#818cf8",
+                                        strokeOpacity: 0.8,
+                                        strokeWeight: 2,
+                                        fillColor: "#c7d2fe",
+                                        fillOpacity: 0.35,
+                                    }}
+                                />
+                            </>
+                        )}
+                    </GoogleMap>
+                )}
+
+                <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <label className="font-bold text-gray-700 block mb-2">위치 설명</label>
+                        <Input 
+                            value={currentDay.description}
+                            onChange={handleDescriptionChange}
+                            placeholder="예: 서울숲 근처, 강남역 11번 출구"
+                        />
+                         <p className="text-sm text-gray-500 mt-1">지도에서 선택한 위치를 설명해주세요.</p>
+                    </div>
+                    <div>
+                        <label className="font-bold text-gray-700 block mb-2">검색 반경: {currentDay.radius}m</label>
+                         <input
+                            type="range"
+                            min="100"
+                            max="5000"
+                            step="100"
+                            value={currentDay.radius}
+                            onChange={(e) => handleRadiusChange(e.target.value)}
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                        />
+                    </div>
+                </div>
             </div>
+          )}
 
-            {/* 여행 계획 폼 */}
-            <form onSubmit={handleSavePlan} className="space-y-6">
-              {/* 여행지 */}
-              <div>
-                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                  <MapPin className="w-5 h-5 text-indigo-600" />
-                  여행지
-                </label>
-                <input
-                  type="text"
-                  value={region}
-                  onChange={(e) => setRegion(e.target.value)}
-                  placeholder="예: 제주도, 부산, 서울 등"
-                  required
-                  className="w-full px-4 py-3 border-2 border-indigo-200 rounded-lg focus:border-indigo-500 focus:outline-none"
-                />
-              </div>
-
-              {/* 여행 기간 */}
-              <div>
-                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                  <Calendar className="w-5 h-5 text-indigo-600" />
-                  여행 기간 (일)
-                </label>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="range"
-                    min="1"
-                    max="10"
-                    value={days}
-                    onChange={(e) => setDays(e.target.value)}
-                    className="flex-1"
-                  />
-                  <span className="text-2xl font-bold text-indigo-600 min-w-[60px] text-center">
-                    {days}일
-                  </span>
-                </div>
-                <p className="text-sm text-gray-500 mt-2">
-                  총 {days * 3}끼 식사가 예상됩니다
-                </p>
-              </div>
-
-              {/* 1인당 평균 예산 */}
-              <div>
-                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                  💰 1인당 평균 식사 예산
-                </label>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="range"
-                    min="10000"
-                    max="100000"
-                    step="5000"
-                    value={budget}
-                    onChange={(e) => setBudget(e.target.value)}
-                    className="flex-1"
-                  />
-                  <span className="text-xl font-bold text-indigo-600 min-w-[120px] text-right">
-                    {parseInt(budget).toLocaleString()}원
-                  </span>
-                </div>
-                <p className="text-sm text-gray-500 mt-2">
-                  이 예산을 기준으로 식당을 추천합니다
-                </p>
-              </div>
-
-              {/* 안내 메시지 */}
-              <div className="bg-indigo-50 rounded-lg p-4 border-2 border-indigo-200">
-                <p className="text-sm text-indigo-800">
-                  💡 <strong>다음 단계:</strong>
-                  <br />
-                  여행 계획 저장 후, 각 멤버가 음식 선호도를 입력하면 AI가 맞춤 식당을 추천합니다!
-                </p>
-              </div>
-
-              {/* 버튼 */}
-              <div className="flex gap-3">
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  type="button"
-                  onClick={() => navigate(routes.groupDetail.replace(":groupId", groupId))}
-                  className="flex-1"
-                >
+          {/* 저장 버튼 */}
+          <div className="mt-8 flex justify-end gap-4">
+              <Button variant="secondary" onClick={() => navigate(routes.groupDetail.replace(':groupId', groupId))}>
                   취소
-                </Button>
-                <Button
-                  variant="primary"
-                  size="lg"
-                  type="submit"
-                  className="flex-1"
-                >
-                  저장 및 계속하기
-                </Button>
-              </div>
-            </form>
+              </Button>
+              <Button variant="primary" size="lg" onClick={handleSave}>
+                  여행 계획 저장
+              </Button>
           </div>
         </div>
       </main>

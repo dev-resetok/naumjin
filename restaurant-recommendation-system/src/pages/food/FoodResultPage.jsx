@@ -119,7 +119,7 @@ export default function FoodResultPage({ session, token, handleLogout }) {
             🎉 추천 식당 결과
           </h1>
           <p className="text-gray-600">
-            {group.name} · {group.tripPlan.region} · {group.tripPlan.days}일 여행
+            {group.name} · {group.tripPlan?.days?.[0]?.description || '여행'} · {group.tripPlan?.days?.length || 0}일 여행
           </p>
         </div>
 

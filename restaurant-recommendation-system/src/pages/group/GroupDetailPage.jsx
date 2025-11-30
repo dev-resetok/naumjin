@@ -110,17 +110,17 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
               icon={<Users />}
               color="indigo"
             />
-            {group.tripPlan ? (
+            {group.tripPlan?.days ? (
               <>
                 <InfoCard
-                  title="여행지"
-                  value={group.tripPlan.region}
+                  title="첫날 여행지"
+                  value={group.tripPlan.days[0]?.description || "미설정"}
                   icon={<MapPin />}
                   color="green"
                 />
                 <InfoCard
                   title="여행 기간"
-                  value={`${group.tripPlan.days}일`}
+                  value={`${group.tripPlan.days.length}일`}
                   icon={<Calendar />}
                   color="purple"
                 />
@@ -169,7 +169,7 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
 
           {/* 액션 버튼 */}
           <div className="space-y-4">
-            {!group.tripPlan ? (
+            {!group.tripPlan?.days ? (
               <div className="bg-white rounded-2xl p-6 border-2 border-indigo-200 shadow-lg">
                 <h3 className="font-bold text-gray-800 mb-3">다음 단계</h3>
                 <p className="text-sm text-gray-600 mb-4">
@@ -185,34 +185,50 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
                 </Button>
               </div>
             ) : hasRestaurants ? (
-              <div className="bg-white rounded-2xl p-6 border-2 border-green-200 shadow-lg">
+               <div className="bg-white rounded-2xl p-6 border-2 border-green-200 shadow-lg">
                 <h3 className="font-bold text-gray-800 mb-3">추천 식당</h3>
                 <p className="text-sm text-gray-600 mb-4">
-                  {group.restaurants.length}개의 식당이 추천되었습니다!
+                  최근 추천 결과: {group.restaurants.length}개의 식당
                 </p>
                 <Button
                   variant="primary"
                   size="lg"
                   onClick={handleViewResults}
-                  className="w-full"
+                  className="w-full mb-4"
                 >
-                  추천 결과 보기
+                  최근 추천 결과 보기
                 </Button>
+                <p className="text-xs text-gray-500 text-center mb-2">또는</p>
+                <h4 className="font-bold text-gray-700 text-center">다른 날짜 추천 받기</h4>
+                <div className="flex flex-col space-y-2 mt-2">
+                    {group.tripPlan.days.map((day, index) => (
+                        <Button
+                            key={index}
+                            variant="secondary"
+                            onClick={() => navigate(routes.loading.replace(":groupId", groupId).replace(":dayIndex", index))}
+                        >
+                            {index + 1}일차: {day.description} 추천 받기
+                        </Button>
+                    ))}
+                </div>
               </div>
             ) : (
               <div className="bg-white rounded-2xl p-6 border-2 border-yellow-200 shadow-lg">
-                <h3 className="font-bold text-gray-800 mb-3">음식 선호도 입력</h3>
+                <h3 className="font-bold text-gray-800 mb-3">식당 추천 받기</h3>
                 <p className="text-sm text-gray-600 mb-4">
-                  모든 멤버가 선호도를 입력하면 추천이 시작됩니다.
+                  각 날짜의 계획에 맞춰 식당을 추천받으세요.
                 </p>
-                <Button
-                  variant="primary"
-                  size="lg"
-                  onClick={() => navigate(routes.foodPreference.replace(":groupId", groupId))}
-                  className="w-full"
-                >
-                  선호도 입력하기
-                </Button>
+                <div className="flex flex-col space-y-2">
+                    {group.tripPlan.days.map((day, index) => (
+                        <Button
+                            key={index}
+                            variant="primary"
+                            onClick={() => navigate(routes.loading.replace(":groupId", groupId).replace(":dayIndex", index))}
+                        >
+                            {index + 1}일차: {day.description} 추천 받기
+                        </Button>
+                    ))}
+                </div>
               </div>
             )}
 
