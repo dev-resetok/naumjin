@@ -85,8 +85,11 @@ export default function FoodDetailPage({ session, handleLogout }) {
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.name)}&query_place_id=${restaurant.place_id}`;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <HeaderBar session={session} handleLogout={handleLogout} />
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
+      {/* 헤더 */}
+      <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
+        <HeaderBar session={session} handleLogout={handleLogout} />
+      </header>
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto space-y-6">
@@ -137,7 +140,7 @@ export default function FoodDetailPage({ session, handleLogout }) {
           <div className="bg-white rounded-2xl p-6 md:p-8 border-2 border-indigo-200 shadow-lg">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">위치</h2>
             <div className="h-80 bg-gray-200 rounded-lg overflow-hidden">
-              <iframe title="Restaurant Location" width="100%" height="100%" style={{ border: 0 }} loading="lazy" allowFullScreen src={`https://www.google.com/maps/embed/v1/place?key=${API_KEY}&q=${encodeURIComponent(restaurant.name)}&query_place_id=${restaurant.place_id}`}></iframe>
+              <iframe title="Restaurant Location" width="100%" height="100%" style={{ border: 0 }} loading="lazy" allowFullScreen src={`https://www.google.com/maps/embed/v1/place?key=${API_KEY}&q=place_id:${restaurant.place_id}`}></iframe>
             </div>
           </div>
 
