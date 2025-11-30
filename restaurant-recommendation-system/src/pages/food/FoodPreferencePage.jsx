@@ -1,60 +1,114 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import HeaderBar from "@common/bar/HeaderBar";
 import Button from "@common/button/Button";
-import { CheckboxGroup, RangeInput } from "@components/common/Input";
+import { RangeInput } from "@components/common/Input";
 import routes from "@utils/constants/routes";
-import { getGroupById, updateUser } from "@utils/helpers/storage";
-import { FOOD_CATEGORIES, FOOD_KEYWORDS } from "@utils/helpers/foodRecommendation";
-import { Heart, ThumbsDown, X, SkipForward } from "lucide-react";
+import { getCurrentUser, updateUser } from "@utils/helpers/storage";
+import {
+  FOOD_CATEGORIES,
+  FOOD_KEYWORDS,
+} from "@utils/helpers/foodRecommendation";
+import { Heart, ThumbsDown } from "lucide-react";
 
 /**
  * 음식 선호도 입력 페이지
- * - 온보딩(groupId 없음)과 그룹 내(groupId 있음) 두 가지 케이스를 모두 처리
+ * - 좋아하는 음식 카테고리 선택 (선택 시 싫어하는 음식에서 자동 비활성화)
+ * - 싫어하는 음식 카테고리 선택 (선택 시 좋아하는 음식에서 자동 비활성화)
+ * - 좋아하는/피하고 싶은 맛/재료 선택 (상호 비활성화)
+ * - 예산 범위 설정
  */
 export default function FoodPreferencePage({ session, token, handleLogout }) {
   const navigate = useNavigate();
-  const { groupId } = useParams(); // groupId가 URL에 있으면 그룹 컨텍스트, 없으면 온보딩
-
-  const [group, setGroup] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   // 선호도 state
   const [likedCategories, setLikedCategories] = useState([]);
   const [dislikedCategories, setDislikedCategories] = useState([]);
-  const [cannotEat, setCannotEat] = useState([]);
   const [dislikedKeywords, setDislikedKeywords] = useState([]);
   const [likedKeywords, setLikedKeywords] = useState([]);
   const [budgetRange, setBudgetRange] = useState([10000, 50000]);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  // 그룹 정보(선택적) 및 기존 선호도 로드
+  // 로그인 체크 및 기존 선호도 로드
   useEffect(() => {
-    if (token && session) {
-      // 그룹 컨텍스트일 경우에만 그룹 정보 로드
-      if (groupId) {
-        const groupResult = getGroupById(token, groupId);
-        if (groupResult.success) {
-          setGroup(groupResult.group);
-        } else {
-          alert(groupResult.message);
-          navigate(routes.home);
-          return;
-        }
-      }
+    const currentUser = getCurrentUser();
 
-      // 기존 사용자 선호도가 있으면 불러오기
-      if (session.user.preference) {
-        const pref = session.user.preference;
-        setLikedCategories(pref.likedCategories || []);
-        setDislikedCategories(pref.dislikedCategories || []);
-        setCannotEat(pref.cannotEat || []);
-        setDislikedKeywords(pref.dislikedKeywords || []);
-        setLikedKeywords(pref.likedKeywords || []);
-        setBudgetRange(pref.budgetRange || [10000, 50000]);
-      }
-      setIsLoading(false);
+    if (!currentUser) {
+      alert("로그인이 필요합니다.");
+      navigate(routes.login);
+      return;
     }
-  }, [groupId, token, session, navigate]);
+
+    // 기존 선호도가 있으면 불러오기
+    if (currentUser.preference) {
+      const pref = currentUser.preference;
+      setLikedCategories(pref.likedCategories || []);
+      setDislikedCategories(pref.dislikedCategories || []);
+      setDislikedKeywords(pref.dislikedKeywords || []);
+      setLikedKeywords(pref.likedKeywords || []);
+      setBudgetRange(pref.budgetRange || [10000, 50000]);
+    }
+
+    setIsLoaded(true);
+  }, []); // 의존성 배열을 빈 배열로 변경
+
+  // 좋아하는 카테고리 토글
+  const handleLikedCategoryToggle = (category) => {
+    setLikedCategories((prev) => {
+      if (prev.includes(category)) {
+        // 이미 선택된 경우 제거
+        return prev.filter((c) => c !== category);
+      } else {
+        // 선택되지 않은 경우 추가
+        return [...prev, category];
+      }
+    });
+
+    // 싫어하는 카테고리에서 제거
+    setDislikedCategories((prev) => prev.filter((c) => c !== category));
+  };
+
+  // 싫어하는 카테고리 토글
+  const handleDislikedCategoryToggle = (category) => {
+    setDislikedCategories((prev) => {
+      if (prev.includes(category)) {
+        // 이미 선택된 경우 제거
+        return prev.filter((c) => c !== category);
+      } else {
+        // 선택되지 않은 경우 추가
+        return [...prev, category];
+      }
+    });
+
+    // 좋아하는 카테고리에서 제거
+    setLikedCategories((prev) => prev.filter((c) => c !== category));
+  };
+
+  // 좋아하는 키워드 토글
+  const handleLikedKeywordToggle = (keyword) => {
+    setLikedKeywords((prev) => {
+      if (prev.includes(keyword)) {
+        return prev.filter((k) => k !== keyword);
+      } else {
+        return [...prev, keyword];
+      }
+    });
+
+    setDislikedKeywords((prev) => prev.filter((k) => k !== keyword));
+  };
+
+  // 싫어하는 키워드 토글
+  const handleDislikedKeywordToggle = (keyword) => {
+    setDislikedKeywords((prev) => {
+      if (prev.includes(keyword)) {
+        return prev.filter((k) => k !== keyword);
+      } else {
+        return [...prev, keyword];
+      }
+    });
+
+    setLikedKeywords((prev) => prev.filter((k) => k !== keyword));
+  };
 
   // 선호도 저장
   const handleSavePreference = (e) => {
@@ -63,7 +117,6 @@ export default function FoodPreferencePage({ session, token, handleLogout }) {
     const preference = {
       likedCategories,
       dislikedCategories,
-      cannotEat,
       dislikedKeywords,
       likedKeywords,
       budgetRange,
@@ -74,30 +127,21 @@ export default function FoodPreferencePage({ session, token, handleLogout }) {
 
     if (result.success) {
       alert("선호도가 저장되었습니다!");
-      
-      if (groupId) {
-        // 그룹 컨텍스트: 그룹 상세 페이지로 이동
-        navigate(routes.groupDetail.replace(":groupId", groupId));
-      } else {
-        // 온보딩 컨텍스트: 메인 페이지로 이동
-        navigate(routes.home);
-      }
+      // 마이페이지로 이동
+      navigate(routes.mypage);
     } else {
-      alert(`저장에 실패했습니다: ${result.message}`);
+      alert("저장에 실패했습니다.");
     }
   };
-  
-  const handleSkip = () => {
-    navigate(routes.home);
-  }
 
-  if (isLoading || !session) {
-    return <div className="min-h-screen flex items-center justify-center">로딩 중...</div>;
-  }
-  
-  // 그룹 컨텍스트가 아닐 경우(온보딩), group 객체가 없어도 페이지가 렌더링되어야 함.
-  if (groupId && !group) {
-    return <div className="min-h-screen flex items-center justify-center">그룹 정보 로딩 중...</div>;
+  const currentUser = getCurrentUser();
+
+  if (!currentUser || !isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        로딩 중...
+      </div>
+    );
   }
 
   const categories = Object.values(FOOD_CATEGORIES);
@@ -105,38 +149,214 @@ export default function FoodPreferencePage({ session, token, handleLogout }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
-      <HeaderBar session={session} handleLogout={handleLogout} />
+      {/* 헤더 */}
+      <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
+        <HeaderBar session={session} handleLogout={handleLogout} />
+      </header>
 
+      {/* 메인 콘텐츠 */}
       <main className="container mx-auto px-6 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-2xl p-8 border-2 border-indigo-200 shadow-lg">
+            {/* 타이틀 */}
             <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">음식 선호도 입력</h1>
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                음식 선호도 {currentUser.preference ? "수정" : "입력"}
+              </h1>
               <p className="text-gray-600">
-                {session.user.nickname}님의 음식 취향을 알려주세요. {groupId ? "" : "언제든지 수정할 수 있습니다."}
+                {currentUser.nickname}님의 음식 취향을 알려주세요
               </p>
-              {group && (
-                <p className="text-sm text-indigo-600 mt-1">그룹: {group.name}</p>
-              )}
             </div>
 
+            {/* 선호도 폼 */}
             <form onSubmit={handleSavePreference} className="space-y-8">
-              {/* ... (선호도 입력 폼은 동일) ... */}
-              <div className="p-6 bg-green-50 rounded-lg border-2 border-green-200"><div className="flex items-center gap-2 mb-4"><Heart className="w-6 h-6 text-green-600" /><h2 className="text-xl font-bold text-gray-800">좋아하는 음식 종류</h2></div><CheckboxGroup options={categories} selected={likedCategories} onChange={setLikedCategories} /></div>
-              <div className="p-6 bg-yellow-50 rounded-lg border-2 border-yellow-200"><div className="flex items-center gap-2 mb-4"><ThumbsDown className="w-6 h-6 text-yellow-600" /><h2 className="text-xl font-bold text-gray-800">선호하지 않는 음식 종류</h2></div><CheckboxGroup options={categories} selected={dislikedCategories} onChange={setDislikedCategories} /></div>
-              <div className="p-6 bg-red-50 rounded-lg border-2 border-red-200"><div className="flex items-center gap-2 mb-4"><X className="w-6 h-6 text-red-600" /><h2 className="text-xl font-bold text-gray-800">못 먹는 음식 (알레르기, 금기 등)</h2></div><CheckboxGroup options={keywords} selected={cannotEat} onChange={setCannotEat} /><p className="text-sm text-red-600 mt-3">⚠️ 이 항목은 추천에서 완전히 제외됩니다</p></div>
-              <div className="p-6 bg-orange-50 rounded-lg border-2 border-orange-200"><h2 className="text-xl font-bold text-gray-800 mb-4">피하고 싶은 맛/재료</h2><CheckboxGroup options={keywords} selected={dislikedKeywords} onChange={setDislikedKeywords} /></div>
-              <div className="p-6 bg-blue-50 rounded-lg border-2 border-blue-200"><h2 className="text-xl font-bold text-gray-800 mb-4">선호하는 맛/재료</h2><CheckboxGroup options={keywords} selected={likedKeywords} onChange={setLikedKeywords} /></div>
-              <div className="p-6 bg-indigo-50 rounded-lg border-2 border-indigo-200"><RangeInput label="💰 선호하는 가격대 (1인 평균)" min={5000} max={100000} value={budgetRange} onChange={setBudgetRange} step={5000}/></div>
+              {/* 좋아하는 음식 카테고리 */}
+              <div className="p-6 bg-green-50 rounded-lg border-2 border-green-200">
+                <div className="flex items-center gap-2 mb-4">
+                  <Heart className="w-6 h-6 text-green-600" />
+                  <h2 className="text-xl font-bold text-gray-800">
+                    좋아하는 음식 종류
+                  </h2>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {categories.map((category) => {
+                    const isSelected = likedCategories.includes(category);
+                    const isDisabled = dislikedCategories.includes(category);
+                    return (
+                      <button
+                        key={category}
+                        type="button"
+                        onClick={() => handleLikedCategoryToggle(category)}
+                        disabled={isDisabled}
+                        className={`
+                          px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium
+                          ${
+                            isSelected
+                              ? "bg-green-100 border-green-500 text-green-700"
+                              : isDisabled
+                              ? "bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed"
+                              : "bg-white border-gray-300 text-gray-700 hover:border-green-300 cursor-pointer"
+                          }
+                        `}
+                      >
+                        {isSelected && "✓ "}
+                        {category}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 싫어하는 음식 카테고리 */}
+              <div className="p-6 bg-yellow-50 rounded-lg border-2 border-yellow-200">
+                <div className="flex items-center gap-2 mb-4">
+                  <ThumbsDown className="w-6 h-6 text-yellow-600" />
+                  <h2 className="text-xl font-bold text-gray-800">
+                    선호하지 않는 음식 종류
+                  </h2>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {categories.map((category) => {
+                    const isSelected = dislikedCategories.includes(category);
+                    const isDisabled = likedCategories.includes(category);
+                    return (
+                      <button
+                        key={category}
+                        type="button"
+                        onClick={() => handleDislikedCategoryToggle(category)}
+                        disabled={isDisabled}
+                        className={`
+                          px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium
+                          ${
+                            isSelected
+                              ? "bg-yellow-100 border-yellow-500 text-yellow-700"
+                              : isDisabled
+                              ? "bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed"
+                              : "bg-white border-gray-300 text-gray-700 hover:border-yellow-300 cursor-pointer"
+                          }
+                        `}
+                      >
+                        {isSelected && "✓ "}
+                        {category}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 피하고 싶은 키워드 */}
+              <div className="p-6 bg-orange-50 rounded-lg border-2 border-orange-200">
+                <h2 className="text-xl font-bold text-gray-800 mb-4">
+                  피하고 싶은 맛/재료
+                </h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {keywords.map((keyword) => {
+                    const isSelected = dislikedKeywords.includes(keyword);
+                    const isDisabled = likedKeywords.includes(keyword);
+                    return (
+                      <button
+                        key={keyword}
+                        type="button"
+                        onClick={() => handleDislikedKeywordToggle(keyword)}
+                        disabled={isDisabled}
+                        className={`
+                          px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium
+                          ${
+                            isSelected
+                              ? "bg-orange-100 border-orange-500 text-orange-700"
+                              : isDisabled
+                              ? "bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed"
+                              : "bg-white border-gray-300 text-gray-700 hover:border-orange-300 cursor-pointer"
+                          }
+                        `}
+                      >
+                        {isSelected && "✓ "}
+                        {keyword}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 좋아하는 키워드 */}
+              <div className="p-6 bg-blue-50 rounded-lg border-2 border-blue-200">
+                <h2 className="text-xl font-bold text-gray-800 mb-4">
+                  선호하는 맛/재료
+                </h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {keywords.map((keyword) => {
+                    const isSelected = likedKeywords.includes(keyword);
+                    const isDisabled = dislikedKeywords.includes(keyword);
+                    return (
+                      <button
+                        key={keyword}
+                        type="button"
+                        onClick={() => handleLikedKeywordToggle(keyword)}
+                        disabled={isDisabled}
+                        className={`
+                          px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium
+                          ${
+                            isSelected
+                              ? "bg-blue-100 border-blue-500 text-blue-700"
+                              : isDisabled
+                              ? "bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed"
+                              : "bg-white border-gray-300 text-gray-700 hover:border-blue-300 cursor-pointer"
+                          }
+                        `}
+                      >
+                        {isSelected && "✓ "}
+                        {keyword}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 예산 범위 */}
+              <div className="p-6 bg-indigo-50 rounded-lg border-2 border-indigo-200">
+                <RangeInput
+                  label="💰 선호하는 가격대 (1인 평균)"
+                  min={5000}
+                  max={100000}
+                  value={budgetRange}
+                  onChange={setBudgetRange}
+                  step={5000}
+                />
+              </div>
+
+              {/* 안내 메시지 */}
+              <div className="bg-indigo-50 rounded-lg p-4 border-2 border-indigo-200">
+                <p className="text-sm text-indigo-800">
+                  💡 <strong>알려드립니다:</strong>
+                  <br />
+                  • 선호도는 언제든 마이페이지에서 수정할 수 있습니다
+                  <br />
+                  • 그룹 여행 시 모든 멤버의 선호도를 종합하여 최적의 식당을
+                  추천합니다
+                  <br />• 좋아하는 음식과 싫어하는 음식은 동시에 선택할 수
+                  없습니다
+                </p>
+              </div>
 
               {/* 버튼 */}
-              <div className="mt-8 flex gap-3">
-                {groupId ? (
-                   <Button variant="secondary" size="lg" type="button" onClick={() => navigate(routes.groupDetail.replace(":groupId", groupId))} className="flex-1">취소</Button>
-                ) : (
-                   <Button variant="secondary" size="lg" type="button" onClick={handleSkip} className="flex-1"><SkipForward className="w-5 h-5 mr-2"/>나중에 하기</Button>
-                )}
-                <Button variant="primary" size="lg" type="submit" className="flex-1">저장하기</Button>
+              <div className="flex gap-3">
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  type="button"
+                  onClick={() => navigate(routes.mypage)}
+                  className="flex-1"
+                >
+                  취소
+                </Button>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  type="submit"
+                  className="flex-1"
+                >
+                  저장하기
+                </Button>
               </div>
             </form>
           </div>

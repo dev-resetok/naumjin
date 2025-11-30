@@ -12,7 +12,12 @@ const API_KEY = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
 const adaptPlaceToRestaurant = (place) => {
   let photoUrl = "https://via.placeholder.com/400x300?text=No+Image";
   // API 키가 설정되었고, 사진 정보가 있을 경우에만 실제 이미지 URL 생성
-  if (API_KEY && API_KEY !== "YOUR_API_KEY" && place.photos && place.photos.length > 0) {
+  if (
+    API_KEY &&
+    API_KEY !== "YOUR_API_KEY" &&
+    place.photos &&
+    place.photos.length > 0
+  ) {
     const photoReference = place.photos[0].photo_reference;
     photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photoReference}&key=${API_KEY}`;
   }
@@ -26,14 +31,14 @@ const adaptPlaceToRestaurant = (place) => {
     keywords: place.types, // keywords 대신 types 배열을 전달
     rating: place.rating || 0,
     avgPrice: place.price_level, // 0~4 정수, 실제 가격이 아님
+    user_ratings_total: place.user_ratings_total || 0,
     location: {
-      address: place.formatted_address,
-      lat: place.geometry.location.lat,
-      lng: place.geometry.location.lng,
+      address: place.formatted_address || place.vicinity || "",
+      lat: place.geometry?.location?.lat || 0,
+      lng: place.geometry?.location?.lng || 0,
     },
   };
 };
-
 
 /**
  * 추천 결과 페이지
@@ -48,27 +53,28 @@ export default function FoodResultPage({ session, token, handleLogout }) {
 
   // 그룹 및 추천 결과 로드
   useEffect(() => {
-    if (token) {
-      const result = getGroupById(token, groupId);
-      if (result.success) {
-        const groupData = result.group;
+    // getGroupById는 객체를 직접 반환 (success 속성 없음)
+    const groupData = getGroupById(groupId);
 
-        if (!groupData.restaurants || groupData.restaurants.length === 0) {
-          alert("아직 추천 결과가 없습니다. 선호도를 먼저 입력해주세요.");
-          navigate(routes.groupDetail.replace(":groupId", groupId));
-          return;
-        }
-
-        const adaptedRestaurants = groupData.restaurants.map(adaptPlaceToRestaurant);
-        setGroup(groupData);
-        setRestaurants(adaptedRestaurants);
-        setFilteredRestaurants(adaptedRestaurants);
-      } else {
-        alert(result.message);
-        navigate(routes.home);
-      }
+    if (!groupData) {
+      alert("그룹을 찾을 수 없습니다.");
+      navigate(routes.home);
+      return;
     }
-  }, [groupId, token, navigate]);
+
+    if (!groupData.restaurants || groupData.restaurants.length === 0) {
+      alert("아직 추천 결과가 없습니다. 먼저 식당 추천을 받아주세요.");
+      navigate(routes.groupDetail.replace(":groupId", groupId));
+      return;
+    }
+
+    const adaptedRestaurants = groupData.restaurants.map(
+      adaptPlaceToRestaurant
+    );
+    setGroup(groupData);
+    setRestaurants(adaptedRestaurants);
+    setFilteredRestaurants(adaptedRestaurants);
+  }, [groupId, navigate]);
 
   // 필터링 처리
   useEffect(() => {
@@ -76,14 +82,13 @@ export default function FoodResultPage({ session, token, handleLogout }) {
       setFilteredRestaurants(restaurants);
     } else {
       setFilteredRestaurants(
-        restaurants.filter(r => r.rating >= filterRating)
+        restaurants.filter((r) => r.rating >= filterRating)
       );
     }
   }, [filterRating, restaurants]);
 
   // 식당 상세 페이지로 이동
   const handleRestaurantClick = (restaurant) => {
-    // Google Places API 데이터는 복잡하므로 state로 전달하는 것이 유용
     navigate(
       routes.foodDetail
         .replace(":groupId", groupId)
@@ -93,19 +98,27 @@ export default function FoodResultPage({ session, token, handleLogout }) {
   };
 
   if (!group || !session) {
-    return <div className="min-h-screen flex items-center justify-center">로딩 중...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        로딩 중...
+      </div>
+    );
   }
 
-  const topRestaurant = filteredRestaurants.length > 0
-    ? filteredRestaurants.reduce((prev, current) => (prev.rating > current.rating) ? prev : current)
-    : null;
-  
-  const avgRating = filteredRestaurants.length > 0
-    ? (
-        filteredRestaurants.reduce((sum, r) => sum + (r.rating || 0), 0) /
-        filteredRestaurants.filter(r => r.rating > 0).length
-      ).toFixed(1)
-    : 0;
+  const topRestaurant =
+    filteredRestaurants.length > 0
+      ? filteredRestaurants.reduce((prev, current) =>
+          prev.rating > current.rating ? prev : current
+        )
+      : null;
+
+  const avgRating =
+    filteredRestaurants.length > 0
+      ? (
+          filteredRestaurants.reduce((sum, r) => sum + (r.rating || 0), 0) /
+          filteredRestaurants.filter((r) => r.rating > 0).length
+        ).toFixed(1)
+      : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
@@ -119,7 +132,8 @@ export default function FoodResultPage({ session, token, handleLogout }) {
             🎉 추천 식당 결과
           </h1>
           <p className="text-gray-600">
-            {group.name} · {group.tripPlan?.days?.[0]?.description || '여행'} · {group.tripPlan?.days?.length || 0}일 여행
+            {group.name} · {group.tripPlan?.days?.[0]?.description || "여행"} ·{" "}
+            {group.tripPlan?.days?.length || 0}일 여행
           </p>
         </div>
 
@@ -144,7 +158,7 @@ export default function FoodResultPage({ session, token, handleLogout }) {
           />
           <InfoCard
             title="그룹 멤버"
-            value={`${group.members.length}명`}
+            value={`${group.members?.length || 0}명`}
             icon={<TrendingUp />}
             color="orange"
           />
@@ -164,7 +178,9 @@ export default function FoodResultPage({ session, token, handleLogout }) {
                   </label>
                   <select
                     value={filterRating}
-                    onChange={(e) => setFilterRating(parseFloat(e.target.value))}
+                    onChange={(e) =>
+                      setFilterRating(parseFloat(e.target.value))
+                    }
                     className="w-full px-3 py-2 border-2 border-indigo-200 rounded-lg focus:border-indigo-500 focus:outline-none"
                   >
                     <option value={0}>전체 보기</option>
@@ -176,7 +192,8 @@ export default function FoodResultPage({ session, token, handleLogout }) {
                 </div>
                 <div className="pt-4 border-t border-gray-200">
                   <p className="text-sm text-gray-600">
-                    현재 {filteredRestaurants.length}개의 식당이 표시되고 있습니다.
+                    현재 {filteredRestaurants.length}개의 식당이 표시되고
+                    있습니다.
                   </p>
                 </div>
               </div>
@@ -194,11 +211,10 @@ export default function FoodResultPage({ session, token, handleLogout }) {
               </div>
             ) : (
               <div className="space-y-4">
-                {filteredRestaurants.map((restaurant, index) => (
+                {filteredRestaurants.map((restaurant) => (
                   <RestaurantCard
                     key={restaurant.id}
                     restaurant={restaurant}
-                    // consensus prop은 더 이상 전달하지 않음
                     onClick={() => handleRestaurantClick(restaurant)}
                   />
                 ))}
@@ -211,7 +227,9 @@ export default function FoodResultPage({ session, token, handleLogout }) {
           <Button
             variant="secondary"
             size="lg"
-            onClick={() => navigate(routes.groupDetail.replace(":groupId", groupId))}
+            onClick={() =>
+              navigate(routes.groupDetail.replace(":groupId", groupId))
+            }
           >
             그룹으로 돌아가기
           </Button>
