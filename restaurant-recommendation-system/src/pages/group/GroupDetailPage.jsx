@@ -4,56 +4,34 @@ import HeaderBar from "@common/bar/HeaderBar";
 import Button from "@common/button/Button";
 import { InfoCard } from "@components/common/card/Card";
 import routes from "@utils/constants/routes";
-import { getCurrentUser, getGroupById, getAllUsers } from "@utils/helpers/storage";
+import { getGroupById } from "@utils/helpers/storage";
 import { Users, MapPin, Calendar, Copy, Check, Settings } from "lucide-react";
 
 /**
  * 그룹 상세 페이지
- * - 그룹 정보 확인
- * - 멤버 목록 확인
- * - 여행 계획 시작
- * - 그룹 코드 공유
+ * - 그룹 정보, 멤버 목록 확인
+ * - 여행 계획 시작, 결과 보기 등 액션 수행
  */
-export default function GroupDetailPage() {
+export default function GroupDetailPage({ session, token, handleLogout }) {
   const navigate = useNavigate();
   const { groupId } = useParams();
-  const currentUser = getCurrentUser();
+
   const [group, setGroup] = useState(null);
-  const [members, setMembers] = useState([]);
   const [copied, setCopied] = useState(false);
 
-  // 로그인 체크
+  // 그룹 정보 로드
   useEffect(() => {
-    if (!currentUser) {
-      alert("로그인이 필요합니다.");
-      navigate(routes.login);
-      return;
+    if (token) {
+      const result = getGroupById(token, groupId);
+
+      if (result.success) {
+        setGroup(result.group);
+      } else {
+        alert(result.message);
+        navigate(routes.home);
+      }
     }
-
-    // 그룹 정보 로드
-    const groupData = getGroupById(groupId);
-    if (!groupData) {
-      alert("존재하지 않는 그룹입니다.");
-      navigate(routes.home);
-      return;
-    }
-
-    // 그룹 멤버인지 확인
-    if (!groupData.members.includes(currentUser.id)) {
-      alert("이 그룹의 멤버가 아닙니다.");
-      navigate(routes.home);
-      return;
-    }
-
-    setGroup(groupData);
-
-    // 멤버 정보 로드
-    const allUsers = getAllUsers();
-    const memberData = groupData.members.map(memberId => 
-      allUsers.find(u => u.id === memberId)
-    ).filter(Boolean);
-    setMembers(memberData);
-  }, [groupId, currentUser, navigate]);
+  }, [groupId, token, navigate]);
 
   // 코드 복사 기능
   const handleCopyCode = () => {
@@ -74,18 +52,18 @@ export default function GroupDetailPage() {
     navigate(routes.foodResult.replace(":groupId", groupId));
   };
 
-  if (!group) {
+  if (!group || !session) {
     return <div className="min-h-screen flex items-center justify-center">로딩 중...</div>;
   }
 
-  const isCreator = group.creatorId === currentUser.id;
+  const isCreator = group.creatorId === session.user.id;
   const hasRestaurants = group.restaurants && group.restaurants.length > 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
       {/* 헤더 */}
       <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
-        <HeaderBar />
+        <HeaderBar session={session} handleLogout={handleLogout} />
       </header>
 
       {/* 메인 콘텐츠 */}
@@ -124,7 +102,7 @@ export default function GroupDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <InfoCard
               title="멤버 수"
-              value={`${members.length}명`}
+              value={`${group.members.length}명`}
               icon={<Users />}
               color="indigo"
             />
@@ -160,7 +138,7 @@ export default function GroupDetailPage() {
                 그룹 멤버
               </h2>
               <div className="space-y-3">
-                {members.map((member) => (
+                {group.members.map((member) => (
                   <div
                     key={member.id}
                     className="flex items-center justify-between p-4 bg-indigo-50 rounded-lg border border-indigo-200"

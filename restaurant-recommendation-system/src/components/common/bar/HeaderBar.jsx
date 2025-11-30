@@ -1,21 +1,23 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, User, LogOut, Utensils } from "lucide-react";
+import { Home, User, LogOut, Utensils, LogIn, UserPlus } from "lucide-react";
 import routes from "@utils/constants/routes";
-import { getCurrentUser, clearCurrentUser } from "@utils/helpers/storage";
 
 /**
  * 헤더바 컴포넌트
  * 모든 페이지 상단에 표시되는 네비게이션 바
+ * @param {object} session - 현재 사용자 세션 객체
+ * @param {function} handleLogout - 로그아웃 처리 함수
  */
-export default function HeaderBar() {
+export default function HeaderBar({ session, handleLogout }) {
   const navigate = useNavigate();
-  const currentUser = getCurrentUser();
 
-  // 로그아웃 처리
-  const handleLogout = () => {
+  // 로그아웃 확인 및 처리
+  const onLogoutClick = () => {
     if (window.confirm("로그아웃 하시겠습니까?")) {
-      clearCurrentUser();
+      handleLogout();
+      // App.jsx에서 상태가 변경되면 리디렉션은 자동으로 처리될 수 있지만,
+      // 즉각적인 피드백을 위해 홈으로 이동시킬 수 있습니다.
       navigate(routes.home);
     }
   };
@@ -32,8 +34,8 @@ export default function HeaderBar() {
       </button>
 
       {/* 네비게이션 메뉴 */}
-      <div className="flex items-center gap-3">
-        {currentUser ? (
+      <nav className="flex items-center gap-3">
+        {session ? (
           <>
             {/* 로그인된 상태 */}
             <button
@@ -49,11 +51,11 @@ export default function HeaderBar() {
               className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors"
             >
               <User className="w-5 h-5 text-indigo-600" />
-              <span className="text-indigo-700">{currentUser.nickname}</span>
+              <span className="text-indigo-700">{session.user.nickname}</span>
             </button>
 
             <button
-              onClick={handleLogout}
+              onClick={onLogoutClick}
               className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
             >
               <LogOut className="w-5 h-5" />
@@ -65,19 +67,21 @@ export default function HeaderBar() {
             {/* 로그인되지 않은 상태 */}
             <button
               onClick={() => navigate(routes.login)}
-              className="px-4 py-2 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors"
             >
-              로그인
+              <LogIn className="w-5 h-5" />
+              <span>로그인</span>
             </button>
             <button
               onClick={() => navigate(routes.register)}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
             >
-              회원가입
+              <UserPlus className="w-5 h-5" />
+              <span>회원가입</span>
             </button>
           </>
         )}
-      </div>
+      </nav>
     </div>
   );
 }

@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import HeaderBar from "@common/bar/HeaderBar";
 import Button from "@common/button/Button";
 import { Input } from "@components/common/Input";
 import routes from "@utils/constants/routes";
-import { getCurrentUser, joinGroup } from "@utils/helpers/storage";
+import { joinGroup } from "@utils/helpers/storage";
 import { Users } from "lucide-react";
 
 /**
@@ -12,19 +12,10 @@ import { Users } from "lucide-react";
  * - 그룹 코드 입력
  * - 그룹 참여 처리
  */
-export default function GroupJoinPage() {
+export default function GroupJoinPage({ session, token, handleLogout }) {
   const navigate = useNavigate();
-  const currentUser = getCurrentUser();
   const [groupCode, setGroupCode] = useState("");
   const [error, setError] = useState("");
-
-  // 로그인 체크
-  useEffect(() => {
-    if (!currentUser) {
-      alert("로그인이 필요합니다.");
-      navigate(routes.login);
-    }
-  }, [currentUser, navigate]);
 
   // 그룹 참여 처리
   const handleJoinGroup = (e) => {
@@ -36,7 +27,8 @@ export default function GroupJoinPage() {
       return;
     }
 
-    const result = joinGroup(groupCode, currentUser.id);
+    // 토큰을 사용하여 그룹에 참여
+    const result = joinGroup(token, groupCode);
 
     if (result.success) {
       alert(`'${result.group.name}' 그룹에 참여했습니다!`);
@@ -50,7 +42,7 @@ export default function GroupJoinPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
       {/* 헤더 */}
       <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
-        <HeaderBar />
+        <HeaderBar session={session} handleLogout={handleLogout} />
       </header>
 
       {/* 메인 콘텐츠 */}

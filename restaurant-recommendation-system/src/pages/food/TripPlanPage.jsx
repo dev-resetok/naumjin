@@ -2,21 +2,17 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import HeaderBar from "@common/bar/HeaderBar";
 import Button from "@common/button/Button";
-import { Input } from "@components/common/Input";
 import routes from "@utils/constants/routes";
-import { getCurrentUser, getGroupById, updateGroup } from "@utils/helpers/storage";
+import { getGroupById, updateGroup } from "@utils/helpers/storage";
 import { MapPin, Calendar } from "lucide-react";
 
 /**
  * 여행 계획 페이지
- * - 여행지 설정
- * - 여행 기간 설정
- * - 예상 예산 설정
+ * - 여행지, 기간, 예산 설정
  */
-export default function TripPlanPage() {
+export default function TripPlanPage({ session, token, handleLogout }) {
   const navigate = useNavigate();
   const { groupId } = useParams();
-  const currentUser = getCurrentUser();
   const [group, setGroup] = useState(null);
   
   // 여행 계획 state
@@ -24,36 +20,25 @@ export default function TripPlanPage() {
   const [days, setDays] = useState(3);
   const [budget, setBudget] = useState(50000);
 
-  // 로그인 및 그룹 체크
+  // 그룹 정보 로드
   useEffect(() => {
-    if (!currentUser) {
-      alert("로그인이 필요합니다.");
-      navigate(routes.login);
-      return;
+    if (token) {
+      const result = getGroupById(token, groupId);
+      if (result.success) {
+        const groupData = result.group;
+        setGroup(groupData);
+        // 기존 계획이 있으면 불러오기
+        if (groupData.tripPlan) {
+          setRegion(groupData.tripPlan.region);
+          setDays(groupData.tripPlan.days);
+          setBudget(groupData.tripPlan.budget);
+        }
+      } else {
+        alert(result.message);
+        navigate(routes.home);
+      }
     }
-
-    const groupData = getGroupById(groupId);
-    if (!groupData) {
-      alert("존재하지 않는 그룹입니다.");
-      navigate(routes.home);
-      return;
-    }
-
-    if (!groupData.members.includes(currentUser.id)) {
-      alert("이 그룹의 멤버가 아닙니다.");
-      navigate(routes.home);
-      return;
-    }
-
-    setGroup(groupData);
-
-    // 기존 계획이 있으면 불러오기
-    if (groupData.tripPlan) {
-      setRegion(groupData.tripPlan.region);
-      setDays(groupData.tripPlan.days);
-      setBudget(groupData.tripPlan.budget);
-    }
-  }, [groupId, currentUser, navigate]);
+  }, [groupId, token, navigate]);
 
   // 여행 계획 저장
   const handleSavePlan = (e) => {
@@ -76,17 +61,17 @@ export default function TripPlanPage() {
       mealsPerDay: 3, // 하루 3끼 기본
     };
 
-    const result = updateGroup(groupId, { tripPlan });
+    const result = updateGroup(token, groupId, { tripPlan });
 
     if (result.success) {
       alert("여행 계획이 저장되었습니다!");
       navigate(routes.foodPreference.replace(":groupId", groupId));
     } else {
-      alert("저장에 실패했습니다.");
+      alert(`저장에 실패했습니다: ${result.message}`);
     }
   };
 
-  if (!group) {
+  if (!group || !session) {
     return <div className="min-h-screen flex items-center justify-center">로딩 중...</div>;
   }
 
@@ -94,7 +79,7 @@ export default function TripPlanPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
       {/* 헤더 */}
       <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
-        <HeaderBar />
+        <HeaderBar session={session} handleLogout={handleLogout} />
       </header>
 
       {/* 메인 콘텐츠 */}

@@ -4,21 +4,16 @@ import HeaderBar from "@common/bar/HeaderBar";
 import Button from "@common/button/Button";
 import { CheckboxGroup, RangeInput } from "@components/common/Input";
 import routes from "@utils/constants/routes";
-import { getCurrentUser, getGroupById, updateUser } from "@utils/helpers/storage";
+import { getGroupById, updateUser } from "@utils/helpers/storage";
 import { FOOD_CATEGORIES, FOOD_KEYWORDS } from "@utils/helpers/foodRecommendation";
 import { Heart, ThumbsDown, X } from "lucide-react";
 
 /**
  * 음식 선호도 입력 페이지
- * - 좋아하는 음식 카테고리 선택
- * - 싫어하는 음식 카테고리 선택
- * - 못 먹는 음식 키워드 선택
- * - 예산 범위 설정
  */
-export default function FoodPreferencePage() {
+export default function FoodPreferencePage({ session, token, handleLogout }) {
   const navigate = useNavigate();
   const { groupId } = useParams();
-  const currentUser = getCurrentUser();
   const [group, setGroup] = useState(null);
 
   // 선호도 state
@@ -29,34 +24,30 @@ export default function FoodPreferencePage() {
   const [likedKeywords, setLikedKeywords] = useState([]);
   const [budgetRange, setBudgetRange] = useState([10000, 50000]);
 
-  // 로그인 및 그룹 체크
+  // 그룹 체크 및 선호도 로드
   useEffect(() => {
-    if (!currentUser) {
-      alert("로그인이 필요합니다.");
-      navigate(routes.login);
-      return;
-    }
+    if (token && session) {
+      const groupResult = getGroupById(token, groupId);
+      if (groupResult.success) {
+        setGroup(groupResult.group);
+      } else {
+        alert(groupResult.message);
+        navigate(routes.home);
+        return;
+      }
 
-    const groupData = getGroupById(groupId);
-    if (!groupData) {
-      alert("존재하지 않는 그룹입니다.");
-      navigate(routes.home);
-      return;
+      // 기존 선호도가 있으면 불러오기
+      if (session.user.preference) {
+        const pref = session.user.preference;
+        setLikedCategories(pref.likedCategories || []);
+        setDislikedCategories(pref.dislikedCategories || []);
+        setCannotEat(pref.cannotEat || []);
+        setDislikedKeywords(pref.dislikedKeywords || []);
+        setLikedKeywords(pref.likedKeywords || []);
+        setBudgetRange(pref.budgetRange || [10000, 50000]);
+      }
     }
-
-    setGroup(groupData);
-
-    // 기존 선호도가 있으면 불러오기
-    if (currentUser.preference) {
-      const pref = currentUser.preference;
-      setLikedCategories(pref.likedCategories || []);
-      setDislikedCategories(pref.dislikedCategories || []);
-      setCannotEat(pref.cannotEat || []);
-      setDislikedKeywords(pref.dislikedKeywords || []);
-      setLikedKeywords(pref.likedKeywords || []);
-      setBudgetRange(pref.budgetRange || [10000, 50000]);
-    }
-  }, [groupId, currentUser, navigate]);
+  }, [groupId, token, session, navigate]);
 
   // 선호도 저장
   const handleSavePreference = (e) => {
@@ -72,17 +63,20 @@ export default function FoodPreferencePage() {
       updatedAt: new Date().toISOString(),
     };
 
-    const result = updateUser(currentUser.id, { preference });
+    const result = updateUser(token, { preference });
 
     if (result.success) {
       alert("선호도가 저장되었습니다!");
+      // 중요: App.jsx의 세션 상태를 업데이트해야 변경사항이 다른 컴포넌트에 반영됩니다.
+      // updateUser가 localStorage의 세션을 직접 업데이트하므로,
+      // App.jsx의 'storage' 이벤트 리스너가 이를 감지하고 상태를 업데이트할 것입니다.
       navigate(routes.loading.replace(":groupId", groupId));
     } else {
-      alert("저장에 실패했습니다.");
+      alert(`저장에 실패했습니다: ${result.message}`);
     }
   };
 
-  if (!group) {
+  if (!group || !session) {
     return <div className="min-h-screen flex items-center justify-center">로딩 중...</div>;
   }
 
@@ -93,7 +87,7 @@ export default function FoodPreferencePage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
       {/* 헤더 */}
       <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
-        <HeaderBar />
+        <HeaderBar session={session} handleLogout={handleLogout} />
       </header>
 
       {/* 메인 콘텐츠 */}
@@ -104,7 +98,7 @@ export default function FoodPreferencePage() {
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-gray-800 mb-2">음식 선호도 입력</h1>
               <p className="text-gray-600">
-                {currentUser.nickname}님의 음식 취향을 알려주세요
+                {session.user.nickname}님의 음식 취향을 알려주세요
               </p>
               <p className="text-sm text-indigo-600 mt-1">
                 그룹: {group.name}

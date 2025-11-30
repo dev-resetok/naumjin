@@ -3,68 +3,58 @@ import { useNavigate, useParams } from "react-router-dom";
 import HeaderBar from "@common/bar/HeaderBar";
 import Button from "@common/button/Button";
 import routes from "@utils/constants/routes";
-import { getCurrentUser, getGroupById, getAllUsers } from "@utils/helpers/storage";
+import { getGroupById } from "@utils/helpers/storage";
 import { MapPin, Star, DollarSign, Users, ThumbsUp, ThumbsDown } from "lucide-react";
 
 /**
  * 식당 상세 정보 페이지
- * - 식당 기본 정보
- * - 그룹 합의 분석
- * - 멤버별 선호도 확인
- * - 지도 표시 (간단한 표시)
  */
-export default function FoodDetailPage() {
+export default function FoodDetailPage({ session, token, handleLogout }) {
   const navigate = useNavigate();
   const { groupId, restaurantId } = useParams();
-  const currentUser = getCurrentUser();
   const [group, setGroup] = useState(null);
   const [restaurant, setRestaurant] = useState(null);
-  const [members, setMembers] = useState([]);
 
   // 데이터 로드
   useEffect(() => {
-    if (!currentUser) {
-      alert("로그인이 필요합니다.");
-      navigate(routes.login);
-      return;
+    if (token) {
+      const groupResult = getGroupById(token, groupId);
+      if (groupResult.success) {
+        const groupData = groupResult.group;
+        const restaurantData = groupData.restaurants?.find(r => r.id === restaurantId);
+
+        if (!restaurantData) {
+          alert("식당 정보를 찾을 수 없습니다.");
+          navigate(routes.foodResult.replace(":groupId", groupId));
+          return;
+        }
+
+        setGroup(groupData);
+        setRestaurant(restaurantData);
+      } else {
+        alert(groupResult.message);
+        navigate(routes.home);
+      }
     }
+  }, [groupId, restaurantId, token, navigate]);
 
-    const groupData = getGroupById(groupId);
-    if (!groupData) {
-      alert("존재하지 않는 그룹입니다.");
-      navigate(routes.home);
-      return;
-    }
-
-    const restaurantData = groupData.restaurants?.find(r => r.id === restaurantId);
-    if (!restaurantData) {
-      alert("식당 정보를 찾을 수 없습니다.");
-      navigate(routes.foodResult.replace(":groupId", groupId));
-      return;
-    }
-
-    setGroup(groupData);
-    setRestaurant(restaurantData);
-
-    // 멤버 정보 로드
-    const allUsers = getAllUsers();
-    const memberData = groupData.members.map(memberId => 
-      allUsers.find(u => u.id === memberId)
-    ).filter(Boolean);
-    setMembers(memberData);
-  }, [groupId, restaurantId, currentUser, navigate]);
-
-  if (!restaurant || !group) {
+  if (!restaurant || !group || !session) {
     return <div className="min-h-screen flex items-center justify-center">로딩 중...</div>;
   }
 
   const { consensus } = restaurant;
 
+  //
+  const getMemberNickname = (memberId) => {
+    const member = group.members.find(m => m.id === memberId);
+    return member ? member.nickname : "알 수 없음";
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
       {/* 헤더 */}
       <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
-        <HeaderBar />
+        <HeaderBar session={session} handleLogout={handleLogout} />
       </header>
 
       {/* 메인 콘텐츠 */}
@@ -158,12 +148,12 @@ export default function FoodDetailPage() {
                     </h3>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {consensus.likedMembers.map((member) => (
+                    {consensus.likedMembers.map((memberId) => (
                       <div
-                        key={member.id}
+                        key={memberId}
                         className="px-4 py-2 bg-white rounded-lg border border-green-300 text-green-700 font-medium"
                       >
-                        {member.nickname}
+                        {getMemberNickname(memberId)}
                       </div>
                     ))}
                   </div>
@@ -180,23 +170,24 @@ export default function FoodDetailPage() {
                     </h3>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {consensus.dislikedMembers.map((member) => (
+                    {consensus.dislikedMembers.map((memberId) => (
                       <div
-                        key={member.id}
+                        key={memberId}
                         className="px-4 py-2 bg-white rounded-lg border border-red-300 text-red-700 font-medium"
                       >
-                        {member.nickname}
+                        {getMemberNickname(memberId)}
                       </div>
                     ))}
                   </div>
                 </div>
               )}
-
+              
               {/* 중립 멤버 */}
               {(() => {
-                const neutralMembers = members.filter(
-                  m => !consensus.likedMembers.find(lm => lm.id === m.id) &&
-                       !consensus.dislikedMembers.find(dm => dm.id === m.id)
+                const likedIds = new Set(consensus.likedMembers);
+                const dislikedIds = new Set(consensus.dislikedMembers);
+                const neutralMembers = group.members.filter(
+                  m => !likedIds.has(m.id) && !dislikedIds.has(m.id)
                 );
                 return neutralMembers.length > 0 && (
                   <div className="p-5 bg-gray-50 rounded-lg border-2 border-gray-200">

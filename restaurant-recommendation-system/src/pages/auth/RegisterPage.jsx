@@ -4,14 +4,13 @@ import HeaderBar from "@common/bar/HeaderBar";
 import Button from "@common/button/Button";
 import { Input } from "@components/common/Input";
 import routes from "@utils/constants/routes";
-import { registerUser, setCurrentUser } from "@utils/helpers/storage";
+import { registerUser } from "@utils/helpers/storage";
 import { UserPlus } from "lucide-react";
 
 /**
  * 회원가입 페이지
  * - 아이디, 비밀번호, 닉네임 입력
- * - 회원가입 처리
- * - 고유번호(PID) 자동 생성
+ * - 회원가입 성공 시 로그인 페이지로 이동
  */
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -31,30 +30,26 @@ export default function RegisterPage() {
       setError("모든 항목을 입력해주세요.");
       return;
     }
-
     if (userId.length < 4) {
       setError("아이디는 4자 이상이어야 합니다.");
       return;
     }
-
     if (password.length < 6) {
       setError("비밀번호는 6자 이상이어야 합니다.");
       return;
     }
-
     if (password !== passwordConfirm) {
       setError("비밀번호가 일치하지 않습니다.");
       return;
     }
 
-    // 회원가입 시도
+    // 회원가입 시도 (storage.js의 새 함수 사용)
     const result = registerUser(userId, password, nickname);
     
     if (result.success) {
-      // 자동 로그인
-      setCurrentUser(result.user);
-      alert(`${result.user.nickname}님, 회원가입을 환영합니다!\n고유번호(PID): ${result.user.pid}`);
-      navigate(routes.home);
+      alert(result.message + "\n로그인 페이지로 이동합니다.");
+      // 회원가입 후 자동 로그인 대신 로그인 페이지로 이동
+      navigate(routes.login);
     } else {
       setError(result.message);
     }

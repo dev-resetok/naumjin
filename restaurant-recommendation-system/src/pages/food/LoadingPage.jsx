@@ -1,17 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import routes from "@utils/constants/routes";
-import { getGroupById, getAllUsers, updateGroup } from "@utils/helpers/storage";
+import { getGroupById, updateGroup } from "@utils/helpers/storage";
 import { generateMockRestaurants, sortRestaurantsByConsensus } from "@utils/helpers/foodRecommendation";
 import { Loader2 } from "lucide-react";
 
 /**
  * 로딩 페이지
- * - 식당 데이터 생성 (Google Places API 대신 Mock 데이터)
- * - 그룹 합의 점수 계산
- * - 식당 추천 결과 저장
+ * - 식당 데이터 생성, 그룹 합의 점수 계산, 결과 저장
  */
-export default function LoadingPage() {
+export default function LoadingPage({ token }) {
   const navigate = useNavigate();
   const { groupId } = useParams();
   const [progress, setProgress] = useState(0);
@@ -19,30 +17,38 @@ export default function LoadingPage() {
 
   useEffect(() => {
     const processRecommendation = async () => {
+      if (!token) {
+        alert("인증 정보가 없습니다. 다시 로그인해주세요.");
+        navigate(routes.login);
+        return;
+      }
       try {
-        // 1. 그룹 정보 로드 (10%)
+        // 1. 그룹 정보 및 멤버 정보 로드 (10%)
         setProgress(10);
         setMessage("그룹 정보를 불러오는 중...");
         await sleep(500);
 
-        const group = getGroupById(groupId);
-        if (!group || !group.tripPlan) {
+        const groupResult = getGroupById(token, groupId);
+        if (!groupResult.success) {
+          alert(groupResult.message);
+          navigate(routes.groupDetail.replace(":groupId", groupId));
+          return;
+        }
+        
+        const group = groupResult.group;
+        if (!group.tripPlan) {
           alert("여행 계획이 설정되지 않았습니다.");
           navigate(routes.groupDetail.replace(":groupId", groupId));
           return;
         }
 
-        // 2. 멤버 정보 및 선호도 로드 (30%)
+        // 2. 멤버 선호도 분석 (30%)
         setProgress(30);
         setMessage("멤버들의 선호도를 분석하는 중...");
         await sleep(500);
-
-        const allUsers = getAllUsers();
-        const members = group.members.map(memberId => 
-          allUsers.find(u => u.id === memberId)
-        ).filter(Boolean);
-
-        // 선호도가 없는 멤버 체크
+        
+        // getGroupById가 멤버 정보를 포함하므로, members를 바로 사용
+        const members = group.members;
         const membersWithoutPreference = members.filter(m => !m.preference);
         if (membersWithoutPreference.length > 0) {
           alert(`일부 멤버가 선호도를 입력하지 않았습니다.\n(${membersWithoutPreference.map(m => m.nickname).join(", ")})`);
@@ -69,13 +75,13 @@ export default function LoadingPage() {
         setMessage("추천 결과를 저장하는 중...");
         await sleep(500);
 
-        const result = updateGroup(groupId, {
+        const updateResult = updateGroup(token, groupId, {
           restaurants: sortedRestaurants,
           lastRecommendation: new Date().toISOString(),
         });
 
-        if (!result.success) {
-          throw new Error("결과 저장 실패");
+        if (!updateResult.success) {
+          throw new Error("결과 저장 실패: " + updateResult.message);
         }
 
         // 6. 완료 (100%)
@@ -83,7 +89,6 @@ export default function LoadingPage() {
         setMessage("완료! 추천 결과로 이동합니다...");
         await sleep(500);
 
-        // 추천 결과 페이지로 이동
         navigate(routes.foodResult.replace(":groupId", groupId));
 
       } catch (error) {
@@ -94,7 +99,7 @@ export default function LoadingPage() {
     };
 
     processRecommendation();
-  }, [groupId, navigate]);
+  }, [groupId, token, navigate]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 flex items-center justify-center">

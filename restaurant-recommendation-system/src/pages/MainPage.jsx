@@ -1,9 +1,8 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import HeaderBar from "@common/bar/HeaderBar";
 import Button from "@common/button/Button";
 import routes from "@utils/constants/routes";
-import { getCurrentUser } from "@utils/helpers/storage";
 import { Users, MapPin, Sparkles, TrendingUp } from "lucide-react";
 
 /**
@@ -11,10 +10,11 @@ import { Users, MapPin, Sparkles, TrendingUp } from "lucide-react";
  * - 서비스 소개
  * - 로그인/회원가입 유도
  * - 로그인 후: 그룹 생성/참여 버튼
+ * @param {object} session - 현재 사용자 세션 객체
+ * @param {function} handleLogout - 로그아웃 처리 함수
  */
-export default function MainPage() {
+export default function MainPage({ session, handleLogout }) {
   const navigate = useNavigate();
-  const currentUser = getCurrentUser();
 
   // 기능 소개 카드 데이터
   const features = [
@@ -44,7 +44,7 @@ export default function MainPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
       {/* 헤더 */}
       <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
-        <HeaderBar />
+        <HeaderBar session={session} handleLogout={handleLogout} />
       </header>
 
       {/* 메인 콘텐츠 */}
@@ -59,7 +59,7 @@ export default function MainPage() {
           </p>
 
           {/* 로그인 여부에 따른 버튼 */}
-          {currentUser ? (
+          {session ? (
             <div className="flex items-center justify-center gap-4">
               <Button
                 variant="primary"

@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import HeaderBar from "@common/bar/HeaderBar";
 import Button from "@common/button/Button";
 import { Input } from "@components/common/Input";
 import routes from "@utils/constants/routes";
-import { getCurrentUser, createGroup } from "@utils/helpers/storage";
+import { createGroup } from "@utils/helpers/storage";
 import { Users, Copy, Check } from "lucide-react";
 
 /**
@@ -13,20 +13,11 @@ import { Users, Copy, Check } from "lucide-react";
  * - 그룹 생성 및 고유 코드 발급
  * - 코드 복사 기능
  */
-export default function GroupCreatePage() {
+export default function GroupCreatePage({ session, token, handleLogout }) {
   const navigate = useNavigate();
-  const currentUser = getCurrentUser();
   const [groupName, setGroupName] = useState("");
   const [createdGroup, setCreatedGroup] = useState(null);
   const [copied, setCopied] = useState(false);
-
-  // 로그인 체크
-  useEffect(() => {
-    if (!currentUser) {
-      alert("로그인이 필요합니다.");
-      navigate(routes.login);
-    }
-  }, [currentUser, navigate]);
 
   // 그룹 생성 처리
   const handleCreateGroup = (e) => {
@@ -36,13 +27,15 @@ export default function GroupCreatePage() {
       alert("그룹 이름을 입력해주세요.");
       return;
     }
-
-    const result = createGroup(groupName, currentUser.id);
+    
+    // 토큰을 사용하여 그룹 생성
+    const result = createGroup(token, groupName);
 
     if (result.success) {
       setCreatedGroup(result.group);
     } else {
-      alert("그룹 생성에 실패했습니다.");
+      // 실패 시 메시지 표시 (예: 토큰 만료 등)
+      alert(`그룹 생성에 실패했습니다: ${result.message}`);
     }
   };
 
@@ -64,7 +57,7 @@ export default function GroupCreatePage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
       {/* 헤더 */}
       <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
-        <HeaderBar />
+        <HeaderBar session={session} handleLogout={handleLogout} />
       </header>
 
       {/* 메인 콘텐츠 */}

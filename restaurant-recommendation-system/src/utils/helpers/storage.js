@@ -1,197 +1,323 @@
 /**
- * 로컬 스토리지 관리 헬퍼 함수
- * 사용자 정보, 그룹 정보 등을 브라우저에 저장/불러오기
+ * 로컬 스토리지 기반의 모의(Mock) 백엔드 API
+ * 사용자 및 그룹 데이터를 관리하고, 토큰 기반 인증을 시뮬레이션합니다.
  */
+
+// --- 내부 데이터베이스 및 키 ---
 
 const STORAGE_KEYS = {
-  CURRENT_USER: "currentUser",
-  USERS: "users",
-  GROUPS: "groups",
+  CURRENT_SESSION: "currentUserSession", // 현재 로그인 세션 정보
+  USERS: "users", // 모든 사용자 정보 (DB 역할)
+  GROUPS: "groups", // 모든 그룹 정보 (DB 역할)
 };
 
-/**
- * 현재 로그인한 사용자 정보 저장
- */
-export function setCurrentUser(user) {
-  localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
-}
+// --- 비공개 헬퍼 함수 (파일 내부에서만 사용) ---
 
 /**
- * 현재 로그인한 사용자 정보 가져오기
+ * 'users' 테이블에서 모든 사용자 정보를 가져옵니다. (DB 읽기)
+ * @returns {Array} 사용자 목록
  */
-export function getCurrentUser() {
-  const data = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-  return data ? JSON.parse(data) : null;
-}
-
-/**
- * 로그아웃 - 현재 사용자 정보 삭제
- */
-export function clearCurrentUser() {
-  localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-}
-
-/**
- * 모든 사용자 정보 가져오기
- */
-export function getAllUsers() {
+function _getAllUsers() {
   const data = localStorage.getItem(STORAGE_KEYS.USERS);
   return data ? JSON.parse(data) : [];
 }
 
 /**
- * 새 사용자 등록
+ * 'users' 테이블에 사용자 목록을 저장합니다. (DB 쓰기)
+ * @param {Array} users - 전체 사용자 목록
  */
-export function registerUser(userId, password, nickname) {
-  const users = getAllUsers();
-  
-  // 중복 체크
-  if (users.find(u => u.id === userId)) {
-    return { success: false, message: "이미 존재하는 아이디입니다." };
-  }
-
-  const newUser = {
-    id: userId,
-    password,
-    nickname,
-    pid: `PID_${Date.now()}`, // 고유 번호 생성
-    createdAt: new Date().toISOString(),
-    preference: null, // 초기에는 선호도 없음
-  };
-
-  users.push(newUser);
+function _setAllUsers(users) {
   localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
-  
-  return { success: true, user: newUser };
 }
 
 /**
- * 로그인 시도
+ * 'groups' 테이블에서 모든 그룹 정보를 가져옵니다. (DB 읽기)
+ * @returns {Array} 그룹 목록
  */
-export function loginUser(userId, password) {
-  const users = getAllUsers();
-  const user = users.find(u => u.id === userId && u.password === password);
-  
-  if (user) {
-    setCurrentUser(user);
-    return { success: true, user };
-  }
-  
-  return { success: false, message: "아이디 또는 비밀번호가 일치하지 않습니다." };
-}
-
-/**
- * 사용자 정보 업데이트
- */
-export function updateUser(userId, updates) {
-  const users = getAllUsers();
-  const index = users.findIndex(u => u.id === userId);
-  
-  if (index !== -1) {
-    users[index] = { ...users[index], ...updates };
-    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
-    
-    // 현재 사용자라면 현재 사용자 정보도 업데이트
-    const currentUser = getCurrentUser();
-    if (currentUser && currentUser.id === userId) {
-      setCurrentUser(users[index]);
-    }
-    
-    return { success: true, user: users[index] };
-  }
-  
-  return { success: false, message: "사용자를 찾을 수 없습니다." };
-}
-
-/**
- * 모든 그룹 정보 가져오기
- */
-export function getAllGroups() {
+function _getAllGroups() {
   const data = localStorage.getItem(STORAGE_KEYS.GROUPS);
   return data ? JSON.parse(data) : [];
 }
 
 /**
- * 특정 그룹 정보 가져오기
+ * 'groups' 테이블에 그룹 목록을 저장합니다. (DB 쓰기)
+ * @param {Array} groups - 전체 그룹 목록
  */
-export function getGroupById(groupId) {
-  const groups = getAllGroups();
-  return groups.find(g => g.id === groupId);
+function _setAllGroups(groups) {
+  localStorage.setItem(STORAGE_KEYS.GROUPS, JSON.stringify(groups));
 }
 
 /**
- * 새 그룹 생성
+ * 전달된 토큰이 유효한지 검증합니다.
+ * @param {string} token - 검증할 세션 토큰
+ * @returns {object|null} 토큰이 유효하면 세션 객체 반환, 아니면 null
  */
-export function createGroup(groupName, creatorId) {
-  const groups = getAllGroups();
-  
+function _validateSession(token) {
+  const session = getCurrentSession();
+  if (session && session.token === token) {
+    return session;
+  }
+  return null;
+}
+
+// --- 공개 API: 세션 관리 ---
+
+/**
+ * 현재 활성화된 세션 정보를 가져옵니다.
+ * @returns {object|null} 현재 세션 객체 (e.g., { user, token }) 또는 null
+ */
+export function getCurrentSession() {
+  const sessionData = localStorage.getItem(STORAGE_KEYS.CURRENT_SESSION);
+  return sessionData ? JSON.parse(sessionData) : null;
+}
+
+/**
+ * 로그아웃 - 현재 세션을 삭제합니다.
+ */
+export function clearCurrentSession() {
+  localStorage.removeItem(STORAGE_KEYS.CURRENT_SESSION);
+}
+
+// --- 공개 API: 사용자 인증 및 관리 ---
+
+/**
+ * 새 사용자를 'DB'에 등록합니다.
+ * @param {string} userId
+ * @param {string} password
+ * @param {string} nickname
+ * @returns {{success: boolean, message: string}}
+ */
+export function registerUser(userId, password, nickname) {
+  const users = _getAllUsers();
+
+  if (users.find((u) => u.id === userId)) {
+    return { success: false, message: "이미 존재하는 아이디입니다." };
+  }
+
+  const newUser = {
+    id: userId,
+    password, // 실제 환경에서는 해싱하여 저장해야 합니다.
+    nickname,
+    pid: `PID_${Date.now()}`,
+    createdAt: new Date().toISOString(),
+    preference: null,
+  };
+
+  users.push(newUser);
+  _setAllUsers(users);
+
+  return { success: true, message: "회원가입이 완료되었습니다." };
+}
+
+/**
+ * 로그인을 시도하고 성공 시 세션을 생성합니다.
+ * @param {string} userId
+ * @param {string} password
+ * @returns {{success: boolean, session: object|null, message: string}}
+ */
+export function loginUser(userId, password) {
+  const users = _getAllUsers();
+  const user = users.find((u) => u.id === userId && u.password === password);
+
+  if (user) {
+    // 비밀번호를 제외한 사용자 정보만 추출
+    const { password, ...userWithoutPassword } = user;
+    
+    // 새 세션 생성
+    const token = `session_token_${Date.now()}_${Math.random()}`;
+    const session = { user: userWithoutPassword, token };
+
+    localStorage.setItem(STORAGE_KEYS.CURRENT_SESSION, JSON.stringify(session));
+    
+    return { success: true, session, message: "로그인 성공" };
+  }
+
+  return { success: false, session: null, message: "아이디 또는 비밀번호가 일치하지 않습니다." };
+}
+
+/**
+ * 사용자 정보를 업데이트합니다. (본인만 가능)
+ * @param {string} token - 인증 토큰
+ * @param {object} updates - 업데이트할 정보
+ * @returns {{success: boolean, user: object|null, message: string}}
+ */
+export function updateUser(token, updates) {
+  const session = _validateSession(token);
+  if (!session) {
+    return { success: false, user: null, message: "인증 실패: 유효하지 않은 토큰입니다." };
+  }
+
+  const users = _getAllUsers();
+  const index = users.findIndex((u) => u.id === session.user.id);
+
+  if (index !== -1) {
+    // 비밀번호는 이 함수로 변경할 수 없도록 함
+    delete updates.password;
+    
+    users[index] = { ...users[index], ...updates };
+    _setAllUsers(users);
+
+    // 현재 세션 정보도 업데이트
+    const { password, ...updatedUserWithoutPassword } = users[index];
+    const newSession = { ...session, user: updatedUserWithoutPassword };
+    localStorage.setItem(STORAGE_KEYS.CURRENT_SESSION, JSON.stringify(newSession));
+    
+    return { success: true, user: updatedUserWithoutPassword, message: "사용자 정보가 업데이트되었습니다." };
+  }
+
+  return { success: false, user: null, message: "사용자를 찾을 수 없습니다." };
+}
+
+
+// --- 공개 API: 그룹 관리 (보안 적용) ---
+
+/**
+ * 새 그룹을 생성합니다. (로그인한 사용자만 가능)
+ * @param {string} token - 인증 토큰
+ * @param {string} groupName - 생성할 그룹 이름
+ * @returns {{success: boolean, group: object|null, message: string}}
+ */
+export function createGroup(token, groupName) {
+  const session = _validateSession(token);
+  if (!session) {
+    return { success: false, group: null, message: "인증 실패: 그룹을 생성하려면 로그인이 필요합니다." };
+  }
+
+  const groups = _getAllGroups();
+  const creatorId = session.user.id;
+
   const newGroup = {
     id: `GRP_${Date.now()}`,
     name: groupName,
-    code: Math.random().toString(36).substring(2, 8).toUpperCase(), // 6자리 랜덤 코드
+    code: Math.random().toString(36).substring(2, 8).toUpperCase(),
     creatorId,
-    members: [creatorId], // 생성자는 자동으로 멤버
+    members: [creatorId],
     createdAt: new Date().toISOString(),
-    tripPlan: null, // 여행 계획
-    restaurants: [], // 추천된 식당 목록
-    history: [], // 히스토리
+    tripPlan: null,
+    restaurants: [],
+    history: [],
   };
 
   groups.push(newGroup);
-  localStorage.setItem(STORAGE_KEYS.GROUPS, JSON.stringify(groups));
-  
-  return { success: true, group: newGroup };
+  _setAllGroups(groups);
+
+  return { success: true, group: newGroup, message: "그룹이 생성되었습니다." };
 }
 
 /**
- * 그룹 코드로 그룹 찾기
+ * 그룹 코드로 그룹에 참여합니다. (로그인한 사용자만 가능)
+ * @param {string} token - 인증 토큰
+ * @param {string} groupCode - 참여할 그룹 코드
+ * @returns {{success: boolean, group: object|null, message: string}}
  */
-export function findGroupByCode(code) {
-  const groups = getAllGroups();
-  return groups.find(g => g.code.toUpperCase() === code.toUpperCase());
+export function joinGroup(token, groupCode) {
+    const session = _validateSession(token);
+    if (!session) {
+        return { success: false, group: null, message: "인증 실패: 그룹에 참여하려면 로그인이 필요합니다." };
+    }
+
+    const groups = _getAllGroups();
+    const group = groups.find(g => g.code.toUpperCase() === groupCode.toUpperCase());
+
+    if (!group) {
+        return { success: false, group: null, message: "존재하지 않는 그룹 코드입니다." };
+    }
+
+    const userId = session.user.id;
+    if (group.members.includes(userId)) {
+        return { success: false, group: null, message: "이미 참여 중인 그룹입니다." };
+    }
+
+    group.members.push(userId);
+    _setAllGroups(groups);
+
+    return { success: true, group, message: "그룹에 참여했습니다." };
 }
 
 /**
- * 그룹에 멤버 추가
+ * 특정 그룹의 상세 정보를 가져옵니다. (그룹 멤버만 가능)
+ * - 멤버 정보를 포함하여 반환합니다.
+ * @param {string} token - 인증 토큰
+ * @param {string} groupId - 조회할 그룹 ID
+ * @returns {{success: boolean, group: object|null, message: string}}
  */
-export function joinGroup(groupCode, userId) {
-  const groups = getAllGroups();
-  const group = groups.find(g => g.code.toUpperCase() === groupCode.toUpperCase());
-  
+export function getGroupById(token, groupId) {
+  const session = _validateSession(token);
+  if (!session) {
+    return { success: false, group: null, message: "인증 실패: 그룹 정보를 보려면 로그인이 필요합니다." };
+  }
+
+  const group = _getAllGroups().find(g => g.id === groupId);
+
   if (!group) {
-    return { success: false, message: "존재하지 않는 그룹 코드입니다." };
+    return { success: false, group: null, message: "그룹을 찾을 수 없습니다." };
   }
   
-  if (group.members.includes(userId)) {
-    return { success: false, message: "이미 참여 중인 그룹입니다." };
+  // 권한 확인: 요청한 사용자가 그룹 멤버인지 확인
+  if (!group.members.includes(session.user.id)) {
+    return { success: false, group: null, message: "권한 없음: 이 그룹의 멤버가 아닙니다." };
   }
-  
-  group.members.push(userId);
-  localStorage.setItem(STORAGE_KEYS.GROUPS, JSON.stringify(groups));
-  
-  return { success: true, group };
+
+  // --- 멤버 정보 채우기 ---
+  const allUsers = _getAllUsers();
+  const populatedMembers = group.members.map(memberId => {
+    const memberInfo = allUsers.find(u => u.id === memberId);
+    if (!memberInfo) return null;
+    // 비밀번호를 제외한 공개 정보만 반환
+    const { password, ...publicMemberInfo } = memberInfo;
+    return publicMemberInfo;
+  }).filter(Boolean); // null인 경우(사용자를 찾지 못한 경우) 제외
+
+  const groupWithPopulatedMembers = { ...group, members: populatedMembers };
+  // -------------------------
+
+  return { success: true, group: groupWithPopulatedMembers, message: "그룹 정보를 성공적으로 가져왔습니다." };
 }
 
 /**
- * 그룹 정보 업데이트
+ * 사용자가 속한 모든 그룹 목록을 가져옵니다. (로그인한 사용자만 가능)
+ * @param {string} token - 인증 토큰
+ * @returns {{success: boolean, groups: Array, message: string}}
  */
-export function updateGroup(groupId, updates) {
-  const groups = getAllGroups();
+export function getUserGroups(token) {
+    const session = _validateSession(token);
+    if (!session) {
+        return { success: false, groups: [], message: "인증 실패: 그룹 목록을 보려면 로그인이 필요합니다." };
+    }
+
+    const allGroups = _getAllGroups();
+    const userGroups = allGroups.filter(g => g.members.includes(session.user.id));
+
+    return { success: true, groups: userGroups, message: "사용자의 그룹 목록을 가져왔습니다." };
+}
+
+/**
+ * 그룹 정보를 업데이트합니다. (그룹 멤버만 가능, 기능에 따라 생성자만 가능하도록 제한할 수도 있음)
+ * @param {string} token - 인증 토큰
+ * @param {string} groupId - 업데이트할 그룹 ID
+ * @param {object} updates - 업데이트할 정보
+ * @returns {{success: boolean, group: object|null, message: string}}
+ */
+export function updateGroup(token, groupId, updates) {
+  const session = _validateSession(token);
+  if (!session) {
+    return { success: false, group: null, message: "인증 실패: 그룹 정보를 수정하려면 로그인이 필요합니다." };
+  }
+
+  const groups = _getAllGroups();
   const index = groups.findIndex(g => g.id === groupId);
-  
-  if (index !== -1) {
-    groups[index] = { ...groups[index], ...updates };
-    localStorage.setItem(STORAGE_KEYS.GROUPS, JSON.stringify(groups));
-    return { success: true, group: groups[index] };
-  }
-  
-  return { success: false, message: "그룹을 찾을 수 없습니다." };
-}
 
-/**
- * 사용자가 속한 그룹 목록 가져오기
- */
-export function getUserGroups(userId) {
-  const groups = getAllGroups();
-  return groups.filter(g => g.members.includes(userId));
+  if (index === -1) {
+    return { success: false, group: null, message: "그룹을 찾을 수 없습니다." };
+  }
+
+  // 권한 확인: 요청한 사용자가 그룹 멤버인지 확인
+  if (!groups[index].members.includes(session.user.id)) {
+    return { success: false, group: null, message: "권한 없음: 이 그룹의 멤버가 아닙니다." };
+  }
+
+  groups[index] = { ...groups[index], ...updates };
+  _setAllGroups(groups);
+
+  return { success: true, group: groups[index], message: "그룹 정보가 업데이트되었습니다." };
 }

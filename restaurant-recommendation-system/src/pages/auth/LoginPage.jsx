@@ -10,9 +10,9 @@ import { LogIn } from "lucide-react";
 /**
  * 로그인 페이지
  * - 아이디, 비밀번호 입력
- * - 로그인 처리
+ * - 로그인 성공 시 onLoginSuccess 콜백 호출
  */
-export default function LoginPage() {
+export default function LoginPage({ onLoginSuccess }) {
   const navigate = useNavigate();
   const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
@@ -23,18 +23,20 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
 
-    // 유효성 검사
     if (!userId.trim() || !password.trim()) {
       setError("아이디와 비밀번호를 모두 입력해주세요.");
       return;
     }
 
-    // 로그인 시도
+    // storage.js의 loginUser 함수 호출
     const result = loginUser(userId, password);
     
     if (result.success) {
-      alert(`${result.user.nickname}님, 환영합니다!`);
-      navigate(routes.home);
+      alert(`${result.session.user.nickname}님, 환영합니다!`);
+      // 부모 컴포넌트(App.jsx)의 상태를 업데이트
+      onLoginSuccess(result.session);
+      // 메인 페이지로 이동
+      navigate(routes.home, { replace: true });
     } else {
       setError(result.message);
     }

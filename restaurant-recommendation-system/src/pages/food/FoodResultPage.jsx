@@ -4,50 +4,42 @@ import HeaderBar from "@common/bar/HeaderBar";
 import Button from "@common/button/Button";
 import { RestaurantCard, InfoCard } from "@components/common/card/Card";
 import routes from "@utils/constants/routes";
-import { getCurrentUser, getGroupById, getAllUsers } from "@utils/helpers/storage";
+import { getGroupById } from "@utils/helpers/storage";
 import { Trophy, Filter, MapPin, Star, TrendingUp } from "lucide-react";
 
 /**
  * 추천 결과 페이지
- * - 추천된 식당 목록 표시
- * - 그룹 합의 점수 순으로 정렬
- * - 필터링 기능
- * - 식당 상세 정보로 이동
  */
-export default function FoodResultPage() {
+export default function FoodResultPage({ session, token, handleLogout }) {
   const navigate = useNavigate();
   const { groupId } = useParams();
-  const currentUser = getCurrentUser();
   const [group, setGroup] = useState(null);
   const [restaurants, setRestaurants] = useState([]);
   const [filteredRestaurants, setFilteredRestaurants] = useState([]);
   const [filterScore, setFilterScore] = useState(0);
 
-  // 로그인 및 그룹 체크
+  // 그룹 및 추천 결과 로드
   useEffect(() => {
-    if (!currentUser) {
-      alert("로그인이 필요합니다.");
-      navigate(routes.login);
-      return;
-    }
+    if (token) {
+      const result = getGroupById(token, groupId);
+      if (result.success) {
+        const groupData = result.group;
 
-    const groupData = getGroupById(groupId);
-    if (!groupData) {
-      alert("존재하지 않는 그룹입니다.");
-      navigate(routes.home);
-      return;
-    }
+        if (!groupData.restaurants || groupData.restaurants.length === 0) {
+          alert("아직 추천 결과가 없습니다.");
+          navigate(routes.groupDetail.replace(":groupId", groupId));
+          return;
+        }
 
-    if (!groupData.restaurants || groupData.restaurants.length === 0) {
-      alert("아직 추천 결과가 없습니다.");
-      navigate(routes.groupDetail.replace(":groupId", groupId));
-      return;
+        setGroup(groupData);
+        setRestaurants(groupData.restaurants);
+        setFilteredRestaurants(groupData.restaurants);
+      } else {
+        alert(result.message);
+        navigate(routes.home);
+      }
     }
-
-    setGroup(groupData);
-    setRestaurants(groupData.restaurants);
-    setFilteredRestaurants(groupData.restaurants);
-  }, [groupId, currentUser, navigate]);
+  }, [groupId, token, navigate]);
 
   // 필터링 처리
   useEffect(() => {
@@ -69,7 +61,7 @@ export default function FoodResultPage() {
     );
   };
 
-  if (!group) {
+  if (!group || !session) {
     return <div className="min-h-screen flex items-center justify-center">로딩 중...</div>;
   }
 
@@ -85,7 +77,7 @@ export default function FoodResultPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
       {/* 헤더 */}
       <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
-        <HeaderBar />
+        <HeaderBar session={session} handleLogout={handleLogout} />
       </header>
 
       {/* 메인 콘텐츠 */}
