@@ -8,18 +8,21 @@ import React from "react";
  * @param {function} onClick - 클릭 이벤트 핸들러
  * @param {React.ReactNode} children - 버튼 내용
  */
-export default function Button({ 
-  variant = "primary", 
-  size = "md", 
+export default function Button({
+  variant = "primary",
+  size = "md",
   disabled = false,
   onClick,
   className = "",
-  children 
+  type = "button",
+  children,
 }) {
   // 스타일 변형에 따른 클래스
   const variantClasses = {
-    primary: "bg-indigo-600 hover:bg-indigo-700 text-white border-2 border-indigo-700",
-    secondary: "bg-white hover:bg-gray-50 text-indigo-700 border-2 border-indigo-300",
+    primary:
+      "bg-indigo-600 hover:bg-indigo-700 text-white border-2 border-indigo-700",
+    secondary:
+      "bg-white hover:bg-gray-50 text-indigo-700 border-2 border-indigo-300",
     danger: "bg-red-600 hover:bg-red-700 text-white border-2 border-red-700",
   };
 
@@ -32,6 +35,7 @@ export default function Button({
 
   return (
     <button
+      type={type}
       onClick={onClick}
       disabled={disabled}
       className={`
@@ -39,6 +43,7 @@ export default function Button({
         ${sizeClasses[size]}
         ${disabled ? "opacity-50 cursor-not-allowed" : ""}
         rounded-lg font-medium transition-colors
+        inline-flex items-center justify-center gap-2
         ${className}
       `}
     >

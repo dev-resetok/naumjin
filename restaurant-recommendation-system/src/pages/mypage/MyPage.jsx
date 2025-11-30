@@ -36,40 +36,44 @@ export default function MyPage({ session, token, handleLogout }) {
   const handleNavigate = (groupId) => {
     navigate(routes.groupDetail.replace(":groupId", groupId));
   };
-  
+
   const handleLeave = (groupId) => {
     if (window.confirm("정말로 그룹에서 나가시겠습니까?")) {
       const result = leaveGroup(token, groupId);
       alert(result.message);
-      if(result.success) {
+      if (result.success) {
         fetchGroups(); // 목록 새로고침
       }
     }
   };
 
   const handleDelete = (groupId) => {
-    if (window.confirm("그룹을 삭제하면 모든 데이터가 사라집니다. 정말로 삭제하시겠습니까?")) {
+    if (
+      window.confirm(
+        "그룹을 삭제하면 모든 데이터가 사라집니다. 정말로 삭제하시겠습니까?"
+      )
+    ) {
       const result = deleteGroup(token, groupId);
       alert(result.message);
-      if(result.success) {
+      if (result.success) {
         fetchGroups(); // 목록 새로고침
       }
     }
   };
 
-  // 선호도 수정 (첫 번째 그룹 기준)
+  // ✅ 수정: 선호도 수정은 항상 온보딩(개인) 컨텍스트로 이동
   const handleEditPreference = () => {
-    if (userGroups.length > 0) {
-      // BUG FIX: routes.foodPreference -> routes.groupFoodPreference
-      navigate(routes.groupFoodPreference.replace(":groupId", userGroups[0].id));
-    } else {
-      // 그룹이 없으면 온보딩 선호도 설정 페이지로 보낼 수 있음
-      navigate(routes.onboardingPreference);
-    }
+    navigate(routes.onboardingPreference, {
+      state: { returnTo: routes.mypage },
+    });
   };
 
   if (!session) {
-    return <div className="min-h-screen flex items-center justify-center">로딩 중...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        로딩 중...
+      </div>
+    );
   }
 
   const { user } = session;
@@ -90,9 +94,13 @@ export default function MyPage({ session, token, handleLogout }) {
                   {user.nickname[0]}
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-800 mb-2">{user.nickname}</h1>
+                  <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                    {user.nickname}
+                  </h1>
                   <p className="text-gray-600">@{user.id}</p>
-                  <p className="text-sm text-indigo-600 mt-1">PID: {user.pid}</p>
+                  <p className="text-sm text-indigo-600 mt-1">
+                    PID: {user.pid}
+                  </p>
                 </div>
               </div>
               <Button
@@ -109,25 +117,144 @@ export default function MyPage({ session, token, handleLogout }) {
 
           {/* 통계 카드 */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <InfoCard title="참여 그룹" value={`${userGroups.length}개`} icon={<Users />} color="indigo" />
-            <InfoCard title="선호도 설정" value={user.preference ? "완료" : "미설정"} icon={<Heart />} color={user.preference ? "green" : "orange"} />
-            <InfoCard title="가입일" value={new Date(user.createdAt).toLocaleDateString()} icon={<User />} color="purple" />
+            <InfoCard
+              title="참여 그룹"
+              value={`${userGroups.length}개`}
+              icon={<Users />}
+              color="indigo"
+            />
+            <InfoCard
+              title="선호도 설정"
+              value={user.preference ? "완료" : "미설정"}
+              icon={<Heart />}
+              color={user.preference ? "green" : "orange"}
+            />
+            <InfoCard
+              title="가입일"
+              value={new Date(user.createdAt).toLocaleDateString()}
+              icon={<User />}
+              color="purple"
+            />
           </div>
 
           {/* 선호도 정보 */}
           <div className="bg-white rounded-2xl p-8 border-2 border-indigo-200 shadow-lg mb-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2"><Heart className="w-7 h-7 text-indigo-600" />음식 선호도</h2>
-              <Button variant="secondary" size="sm" onClick={handleEditPreference}>수정하기</Button>
+              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <Heart className="w-7 h-7 text-indigo-600" />
+                음식 선호도
+              </h2>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleEditPreference}
+              >
+                {user.preference ? "수정하기" : "설정하기"}
+              </Button>
             </div>
             {user.preference ? (
               <div className="space-y-4">
-                {/* ... (preference display logic remains the same) ... */}
+                {/* 좋아하는 카테고리 */}
+                {user.preference.likedCategories?.length > 0 && (
+                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                    <h3 className="font-bold text-green-800 mb-2">
+                      좋아하는 음식 종류
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {user.preference.likedCategories.map((cat) => (
+                        <span
+                          key={cat}
+                          className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm"
+                        >
+                          {cat}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 선호하지 않는 카테고리 */}
+                {user.preference.dislikedCategories?.length > 0 && (
+                  <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <h3 className="font-bold text-yellow-800 mb-2">
+                      선호하지 않는 음식 종류
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {user.preference.dislikedCategories.map((cat) => (
+                        <span
+                          key={cat}
+                          className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm"
+                        >
+                          {cat}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 선호하는 키워드 */}
+                {user.preference.likedKeywords?.length > 0 && (
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h3 className="font-bold text-blue-800 mb-2">
+                      선호하는 맛/재료
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {user.preference.likedKeywords.map((kw) => (
+                        <span
+                          key={kw}
+                          className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
+                        >
+                          {kw}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 피하고 싶은 키워드 */}
+                {user.preference.dislikedKeywords?.length > 0 && (
+                  <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                    <h3 className="font-bold text-orange-800 mb-2">
+                      피하고 싶은 맛/재료
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {user.preference.dislikedKeywords.map((kw) => (
+                        <span
+                          key={kw}
+                          className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm"
+                        >
+                          {kw}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 가격대 */}
+                {user.preference.budgetRange && (
+                  <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                    <h3 className="font-bold text-indigo-800 mb-2">
+                      선호하는 가격대
+                    </h3>
+                    <p className="text-indigo-700">
+                      {user.preference.budgetRange[0].toLocaleString()}원 ~{" "}
+                      {user.preference.budgetRange[1].toLocaleString()}원
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-gray-600 mb-4">아직 선호도를 설정하지 않았습니다.</p>
-                <Button variant="primary" size="md" onClick={handleEditPreference}>지금 설정하기</Button>
+                <p className="text-gray-600 mb-4">
+                  아직 선호도를 설정하지 않았습니다.
+                </p>
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={handleEditPreference}
+                >
+                  지금 설정하기
+                </Button>
               </div>
             )}
           </div>
@@ -135,20 +262,41 @@ export default function MyPage({ session, token, handleLogout }) {
           {/* 참여 그룹 목록 */}
           <div className="bg-white rounded-2xl p-8 border-2 border-indigo-200 shadow-lg">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2"><Users className="w-7 h-7 text-indigo-600" />참여 중인 그룹</h2>
-              <Button variant="secondary" size="sm" onClick={() => navigate(routes.myGroups)}>전체 보기</Button>
+              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <Users className="w-7 h-7 text-indigo-600" />
+                참여 중인 그룹
+              </h2>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => navigate(routes.myGroups)}
+              >
+                전체 보기
+              </Button>
             </div>
             {userGroups.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-gray-600 mb-4">참여 중인 그룹이 없습니다.</p>
                 <div className="flex justify-center gap-3">
-                  <Button variant="primary" size="md" onClick={() => navigate(routes.groupCreate)}>그룹 만들기</Button>
-                  <Button variant="secondary" size="md" onClick={() => navigate(routes.groupJoin)}>그룹 참여하기</Button>
+                  <Button
+                    variant="primary"
+                    size="md"
+                    onClick={() => navigate(routes.groupCreate)}
+                  >
+                    그룹 만들기
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="md"
+                    onClick={() => navigate(routes.groupJoin)}
+                  >
+                    그룹 참여하기
+                  </Button>
                 </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {userGroups.slice(0, 4).map((group) => ( // Show up to 4 groups
+                {userGroups.slice(0, 4).map((group) => (
                   <GroupCard
                     key={group.id}
                     group={group}

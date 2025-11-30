@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import HeaderBar from "@common/bar/HeaderBar";
 import Button from "@common/button/Button";
 import { CheckboxGroup, RangeInput } from "@components/common/Input";
+import { useToast } from "@components/common/Toast";
 import routes from "@utils/constants/routes";
 import { getGroupById, updateUser } from "@utils/helpers/storage";
 import {
@@ -25,6 +26,8 @@ export default function FoodPreferencePage({
 }) {
   const navigate = useNavigate();
   const { groupId } = useParams(); // groupId가 URL에 있으면 그룹 컨텍스트, 없으면 온보딩
+  const location = useLocation();
+  const toast = useToast();
 
   const [group, setGroup] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,7 +48,7 @@ export default function FoodPreferencePage({
         if (groupResult.success) {
           setGroup(groupResult.group);
         } else {
-          alert(groupResult.message);
+          toast.error(groupResult.message);
           navigate(routes.home);
           return;
         }
@@ -116,22 +119,30 @@ export default function FoodPreferencePage({
     const result = updateUser(token, { preference });
 
     if (result.success) {
-      alert("선호도가 저장되었습니다!");
+      toast.success("선호도가 저장되었습니다! ✨");
 
       // 세션 새로고침 (App.jsx의 상태 업데이트)
       if (refreshSession) {
         refreshSession();
       }
 
-      if (groupId) {
-        // 그룹 컨텍스트: 그룹 상세 페이지로 이동
-        navigate(routes.groupDetail.replace(":groupId", groupId));
-      } else {
-        // 온보딩 컨텍스트: 메인 페이지로 이동
-        navigate(routes.home);
-      }
+      setTimeout(() => {
+        // location.state에서 returnTo를 확인
+        const returnTo = location.state?.returnTo;
+
+        if (returnTo) {
+          // 명시적으로 돌아갈 페이지가 지정된 경우
+          navigate(returnTo);
+        } else if (groupId) {
+          // 그룹 컨텍스트: 그룹 상세 페이지로 이동
+          navigate(routes.groupDetail.replace(":groupId", groupId));
+        } else {
+          // 온보딩 컨텍스트: 메인 페이지로 이동
+          navigate(routes.home);
+        }
+      }, 500);
     } else {
-      alert(`저장에 실패했습니다: ${result.message}`);
+      toast.error(`저장에 실패했습니다: ${result.message}`);
     }
   };
 
@@ -274,7 +285,7 @@ export default function FoodPreferencePage({
                     onClick={handleSkip}
                     className="flex-1"
                   >
-                    <SkipForward className="w-5 h-5 mr-2" />
+                    <SkipForward className="w-5 h-5" />
                     나중에 하기
                   </Button>
                 )}

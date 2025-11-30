@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import HeaderBar from "@common/bar/HeaderBar";
 import Button from "@common/button/Button";
 import { Input } from "@components/common/Input";
+import { useToast } from "@components/common/Toast";
 import routes from "@utils/constants/routes";
 import { updateUser } from "@utils/helpers/storage";
 import { UserCog } from "lucide-react";
@@ -17,6 +18,7 @@ export default function MyPageEdit({
   refreshSession,
 }) {
   const navigate = useNavigate();
+  const toast = useToast();
 
   if (!session) {
     // 이 페이지는 보호된 라우트를 통해 접근되므로 session이 항상 있어야 함
@@ -25,12 +27,10 @@ export default function MyPageEdit({
 
   const [nickname, setNickname] = useState(session.user.nickname);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   const handleSave = (e) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
 
     if (!nickname.trim()) {
       setError("닉네임을 입력해주세요.");
@@ -45,8 +45,7 @@ export default function MyPageEdit({
     const result = updateUser(token, { nickname: nickname.trim() });
 
     if (result.success) {
-      setSuccess("닉네임이 성공적으로 변경되었습니다.");
-      alert("정보가 수정되었습니다.");
+      toast.success("정보가 수정되었습니다! ✅");
 
       // 세션 새로고침 (App.jsx의 상태 업데이트)
       if (refreshSession) {
@@ -54,9 +53,11 @@ export default function MyPageEdit({
       }
 
       // 변경된 세션이 App.jsx에 반영되고 MyPage로 돌아감
-      navigate(routes.mypage);
+      setTimeout(() => {
+        navigate(routes.mypage);
+      }, 500);
     } else {
-      setError(result.message);
+      toast.error(result.message);
     }
   };
 
@@ -80,11 +81,6 @@ export default function MyPageEdit({
             {error && (
               <div className="mb-4 p-3 bg-red-50 border-2 border-red-200 rounded-lg text-red-700 text-sm">
                 {error}
-              </div>
-            )}
-            {success && (
-              <div className="mb-4 p-3 bg-green-50 border-2 border-green-200 rounded-lg text-green-700 text-sm">
-                {success}
               </div>
             )}
 

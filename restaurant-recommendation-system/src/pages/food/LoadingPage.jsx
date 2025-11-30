@@ -2,12 +2,12 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import routes from "@utils/constants/routes";
 import { getGroupById, updateGroup } from "@utils/helpers/storage";
-import { searchPlacesByLocation } from "@utils/api/googlePlaces"; // 새 API 함수 임포트
+import { searchPlacesByLocation } from "@utils/api/googlePlaces";
 import { Loader2 } from "lucide-react";
 
 // 딜레이 함수
 function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -17,8 +17,8 @@ function sleep(ms) {
  */
 const getPrimaryKeyword = (members) => {
   const categoryCounts = {};
-  members.forEach(member => {
-    member.preference?.likedCategories?.forEach(category => {
+  members.forEach((member) => {
+    member.preference?.likedCategories?.forEach((category) => {
       categoryCounts[category] = (categoryCounts[category] || 0) + 1;
     });
   });
@@ -35,7 +35,7 @@ const getPrimaryKeyword = (members) => {
 };
 
 /**
- * 로딩 페이지 (일자별 추천)
+ * 로딩 페이지 (전체 일정 추천)
  */
 export default function LoadingPage({ token }) {
   const navigate = useNavigate();
@@ -51,67 +51,105 @@ export default function LoadingPage({ token }) {
         return;
       }
       try {
-        // 1. 그룹 정보 및 해당 날짜의 계획 로드 (20%)
-        setProgress(20);
-        setMessage("여행 계획과 멤버 선호도를 분석하는 중...");
+        // 1. 그룹 정보 로드 (10%)
+        setProgress(10);
+        setMessage("그룹 정보를 불러오는 중...");
         await sleep(500);
 
         const groupResult = getGroupById(token, groupId);
         if (!groupResult.success) throw new Error(groupResult.message);
-        
-        const group = groupResult.group;
-        const dayPlan = group.tripPlan?.days?.[dayIndex];
 
-        if (!dayPlan || !dayPlan.location) {
-          throw new Error("해당 날짜의 여행 계획(위치)이 설정되지 않았습니다.");
+        const group = groupResult.group;
+        const tripDays = group.tripPlan?.days;
+
+        if (!tripDays || tripDays.length === 0) {
+          throw new Error("여행 계획이 설정되지 않았습니다.");
         }
 
         const members = group.members;
-        const membersWithoutPreference = members.filter(m => !m.preference);
+        const membersWithoutPreference = members.filter((m) => !m.preference);
         if (membersWithoutPreference.length > 0) {
-          throw new Error(`선호도를 입력하지 않은 멤버가 있습니다: ${membersWithoutPreference.map(m => m.nickname).join(", ")}`);
+          throw new Error(
+            `선호도를 입력하지 않은 멤버가 있습니다: ${membersWithoutPreference
+              .map((m) => m.nickname)
+              .join(", ")}`
+          );
         }
 
-        // 2. 검색 키워드 생성 (40%)
-        setProgress(40);
+        // 2. dayIndex가 "all"이면 모든 날짜 처리
+        const isAllDays = dayIndex === "all";
+        const daysToProcess = isAllDays
+          ? tripDays
+          : [tripDays[parseInt(dayIndex)]];
+
+        if (!isAllDays && !tripDays[dayIndex]) {
+          throw new Error("해당 날짜의 여행 계획이 없습니다.");
+        }
+
+        setProgress(20);
+        setMessage(
+          `${
+            isAllDays ? "모든 날짜" : `${parseInt(dayIndex) + 1}일차`
+          }의 선호도를 분석하는 중...`
+        );
+        await sleep(500);
+
+        // 3. 각 날짜별로 식당 검색
         const keyword = getPrimaryKeyword(members);
-        setMessage(`'${dayPlan.description}' 근처에서 '${keyword || '음식점'}'을(를) 검색합니다...`);
-        await sleep(800);
+        const allRestaurantsByDay = {};
 
-        // 3. Google Places API 호출 (70%)
-        setProgress(70);
-        // Text Search 대신 Nearby Search를 사용하는 새 함수 호출
-        const placesResult = await searchPlacesByLocation({
-            location: dayPlan.location,
-            radius: dayPlan.radius,
-            keyword: keyword || 'restaurant' // 키워드가 없으면 'restaurant'로 검색
-        });
+        for (let i = 0; i < daysToProcess.length; i++) {
+          const day = daysToProcess[i];
+          const dayIdx = isAllDays ? i : parseInt(dayIndex);
 
-        if (!placesResult.success) {
-          throw new Error(placesResult.message);
-        }
-        
-        // 4. 클라이언트 사이드 필터링 (80%)
-        setProgress(80);
-        setMessage("세부 조건을 필터링 하는 중...");
-        const allCannotEatKeywords = members.flatMap(m => m.preference.cannotEat || []);
-        const uniqueCannotEatKeywords = [...new Set(allCannotEatKeywords)];
-        
-        let filteredPlaces = placesResult.places;
-        if (uniqueCannotEatKeywords.length > 0) {
-            filteredPlaces = placesResult.places.filter(place => {
-                const placeText = `${place.name} ${place.types.join(' ')}`.toLowerCase();
-                return !uniqueCannotEatKeywords.some(kw => placeText.includes(kw.toLowerCase()));
+          setProgress(30 + (i / daysToProcess.length) * 40);
+          setMessage(
+            `${isAllDays ? `${dayIdx + 1}일차` : ""} '${
+              day.description
+            }' 근처 식당 검색 중...`
+          );
+          await sleep(300);
+
+          const placesResult = await searchPlacesByLocation({
+            location: day.location,
+            radius: day.radius,
+            keyword: keyword || "restaurant",
+          });
+
+          if (!placesResult.success) {
+            throw new Error(placesResult.message);
+          }
+
+          // 필터링
+          const allDislikedKeywords = members.flatMap(
+            (m) => m.preference.dislikedKeywords || []
+          );
+          const uniqueDislikedKeywords = [...new Set(allDislikedKeywords)];
+
+          let filteredPlaces = placesResult.places;
+          if (uniqueDislikedKeywords.length > 0) {
+            filteredPlaces = placesResult.places.filter((place) => {
+              const placeText = `${place.name} ${place.types.join(
+                " "
+              )}`.toLowerCase();
+              return !uniqueDislikedKeywords.some((kw) =>
+                placeText.includes(kw.toLowerCase())
+              );
             });
+          }
+
+          allRestaurantsByDay[dayIdx] = filteredPlaces;
         }
 
-        // 5. 결과 저장 (90%)
+        // 4. 결과 저장 (90%)
         setProgress(90);
         setMessage("추천 결과를 저장하는 중...");
         await sleep(500);
 
+        // 기존 restaurants에 날짜별로 저장
         const updateResult = updateGroup(token, groupId, {
-          restaurants: filteredPlaces,
+          restaurantsByDay: allRestaurantsByDay, // 새로운 구조
+          restaurants: Object.values(allRestaurantsByDay).flat(), // 하위 호환성
           lastRecommendation: new Date().toISOString(),
         });
 
@@ -119,13 +157,12 @@ export default function LoadingPage({ token }) {
           throw new Error("결과 저장 실패: " + updateResult.message);
         }
 
-        // 6. 완료 (100%)
+        // 5. 완료 (100%)
         setProgress(100);
-        setMessage("완료! 추천 결과로 이동합니다...");
+        setMessage("완료! 식당 선택 페이지로 이동합니다...");
         await sleep(500);
 
         navigate(routes.foodResult.replace(":groupId", groupId));
-
       } catch (error) {
         console.error("추천 처리 중 오류:", error);
         alert(`오류: ${error.message}`);
@@ -143,7 +180,9 @@ export default function LoadingPage({ token }) {
           <Loader2 className="w-20 h-20 text-indigo-600 animate-spin mx-auto" />
         </div>
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">AI가 분석하는 중...</h1>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            AI가 분석하는 중...
+          </h1>
           <p className="text-lg text-gray-600">{message}</p>
         </div>
         <div className="w-96 bg-white rounded-full h-4 border-2 border-indigo-300 overflow-hidden">
@@ -158,8 +197,7 @@ export default function LoadingPage({ token }) {
             💡 <strong>잠깐만요!</strong>
             <br />
             AI가 모든 멤버의 선호도를 분석하여 최적의 식당을 찾고 있습니다.
-            <br />
-            곧 완벽한 추천을 받을 수 있어요! 🎉
+            <br />곧 완벽한 추천을 받을 수 있어요! 🎉
           </p>
         </div>
       </div>

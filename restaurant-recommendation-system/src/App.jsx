@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import routes from "@utils/constants/routes";
 import { getCurrentSession, clearCurrentSession } from "@utils/helpers/storage";
+import { ToastProvider } from "@components/common/Toast";
 
 // Pages
 import MainPage from "@pages/MainPage";
@@ -83,146 +84,151 @@ function App() {
   };
 
   return (
-    <Router>
-      <Routes>
-        {/* 인증이 필요 없는 페이지 */}
-        <Route
-          path={routes.login}
-          element={
-            session ? (
-              <Navigate to={routes.home} replace />
-            ) : (
-              <LoginPage onLoginSuccess={handleLoginSuccess} />
-            )
-          }
-        />
-        <Route
-          path={routes.register}
-          element={
-            session ? (
-              <Navigate to={routes.home} replace />
-            ) : (
-              <RegisterPage onLoginSuccess={handleLoginSuccess} />
-            )
-          }
-        />
+    <ToastProvider>
+      <Router>
+        <Routes>
+          {/* 인증이 필요 없는 페이지 */}
+          <Route
+            path={routes.login}
+            element={
+              session ? (
+                <Navigate to={routes.home} replace />
+              ) : (
+                <LoginPage onLoginSuccess={handleLoginSuccess} />
+              )
+            }
+          />
+          <Route
+            path={routes.register}
+            element={
+              session ? (
+                <Navigate to={routes.home} replace />
+              ) : (
+                <RegisterPage onLoginSuccess={handleLoginSuccess} />
+              )
+            }
+          />
 
-        {/* 
-          메인 페이지: 로그인 여부에 따라 다른 모습을 보여줄 수 있으므로 
-          ProtectedRoute로 감싸지 않고 session 정보를 직접 전달
-        */}
-        <Route path={routes.home} element={<MainPage {...commonPageProps} />} />
+          {/* 
+            메인 페이지: 로그인 여부에 따라 다른 모습을 보여줄 수 있으므로 
+            ProtectedRoute로 감싸지 않고 session 정보를 직접 전달
+          */}
+          <Route
+            path={routes.home}
+            element={<MainPage {...commonPageProps} />}
+          />
 
-        {/* 인증이 필요한 페이지 (ProtectedRoute 사용) */}
-        <Route
-          path={routes.groupCreate}
-          element={
-            <ProtectedRoute session={session}>
-              <GroupCreatePage {...commonPageProps} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path={routes.groupJoin}
-          element={
-            <ProtectedRoute session={session}>
-              <GroupJoinPage {...commonPageProps} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path={routes.groupDetail}
-          element={
-            <ProtectedRoute session={session}>
-              <GroupDetailPage {...commonPageProps} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path={routes.groupManage}
-          element={
-            <ProtectedRoute session={session}>
-              <GroupManagePage {...commonPageProps} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path={routes.tripPlan}
-          element={
-            <ProtectedRoute session={session}>
-              <TripPlanPage {...commonPageProps} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path={routes.groupFoodPreference}
-          element={
-            <ProtectedRoute session={session}>
-              <FoodPreferencePage {...commonPageProps} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path={routes.onboardingPreference}
-          element={
-            <ProtectedRoute session={session}>
-              <FoodPreferencePage {...commonPageProps} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path={routes.loading}
-          element={
-            <ProtectedRoute session={session}>
-              <LoadingPage {...commonPageProps} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path={routes.foodResult}
-          element={
-            <ProtectedRoute session={session}>
-              <FoodResultPage {...commonPageProps} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path={routes.foodDetail}
-          element={
-            <ProtectedRoute session={session}>
-              <FoodDetailPage {...commonPageProps} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path={routes.mypage}
-          element={
-            <ProtectedRoute session={session}>
-              <MyPage {...commonPageProps} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path={routes.myGroups}
-          element={
-            <ProtectedRoute session={session}>
-              <MyGroupsPage {...commonPageProps} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path={routes.mypageEdit}
-          element={
-            <ProtectedRoute session={session}>
-              <MyPageEdit {...commonPageProps} />
-            </ProtectedRoute>
-          }
-        />
+          {/* 인증이 필요한 페이지 (ProtectedRoute 사용) */}
+          <Route
+            path={routes.groupCreate}
+            element={
+              <ProtectedRoute session={session}>
+                <GroupCreatePage {...commonPageProps} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={routes.groupJoin}
+            element={
+              <ProtectedRoute session={session}>
+                <GroupJoinPage {...commonPageProps} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={routes.groupDetail}
+            element={
+              <ProtectedRoute session={session}>
+                <GroupDetailPage {...commonPageProps} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={routes.groupManage}
+            element={
+              <ProtectedRoute session={session}>
+                <GroupManagePage {...commonPageProps} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={routes.tripPlan}
+            element={
+              <ProtectedRoute session={session}>
+                <TripPlanPage {...commonPageProps} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={routes.groupFoodPreference}
+            element={
+              <ProtectedRoute session={session}>
+                <FoodPreferencePage {...commonPageProps} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={routes.onboardingPreference}
+            element={
+              <ProtectedRoute session={session}>
+                <FoodPreferencePage {...commonPageProps} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={routes.loading}
+            element={
+              <ProtectedRoute session={session}>
+                <LoadingPage {...commonPageProps} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={routes.foodResult}
+            element={
+              <ProtectedRoute session={session}>
+                <FoodResultPage {...commonPageProps} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={routes.foodDetail}
+            element={
+              <ProtectedRoute session={session}>
+                <FoodDetailPage {...commonPageProps} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={routes.mypage}
+            element={
+              <ProtectedRoute session={session}>
+                <MyPage {...commonPageProps} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={routes.myGroups}
+            element={
+              <ProtectedRoute session={session}>
+                <MyGroupsPage {...commonPageProps} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={routes.mypageEdit}
+            element={
+              <ProtectedRoute session={session}>
+                <MyPageEdit {...commonPageProps} />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* 404 Not Found 또는 다른 경로 처리 */}
-        {/* <Route path="*" element={<NotFoundPage />} /> */}
-      </Routes>
-    </Router>
+          {/* 404 Not Found 또는 다른 경로 처리 */}
+          {/* <Route path="*" element={<NotFoundPage />} /> */}
+        </Routes>
+      </Router>
+    </ToastProvider>
   );
 }
 
