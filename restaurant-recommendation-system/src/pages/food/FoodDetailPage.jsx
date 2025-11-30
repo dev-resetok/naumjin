@@ -5,6 +5,7 @@ import Button from "@common/button/Button";
 import routes from "@utils/constants/routes";
 import { getPlaceDetails } from "@utils/api/googlePlaces"; // 상세 정보 API 함수
 import { MapPin, Star, Users, ExternalLink, Clock, MessageSquare, Phone } from "lucide-react";
+import Layout from "@components/common/Layout";
 
 const API_KEY = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
 
@@ -85,16 +86,12 @@ export default function FoodDetailPage({ session, handleLogout }) {
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.name)}&query_place_id=${restaurant.place_id}`;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
-      {/* 헤더 */}
-      <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
-        <HeaderBar session={session} handleLogout={handleLogout} />
-      </header>
+    <Layout session={session} handleLogout={handleLogout}>
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto space-y-6">
           {/* 식당 기본 정보 */}
-          <div className="bg-white rounded-2xl p-6 md:p-8 border-2 border-indigo-200 shadow-lg">
+          <div className="content-panel-base p-6 md:p-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
               <div>
                 <img src={restaurant.images[0]} alt={restaurant.name} className="w-full h-64 object-cover rounded-xl"/>
@@ -122,13 +119,13 @@ export default function FoodDetailPage({ session, handleLogout }) {
           ) : details ? (
             <>
               {details.reviews && (
-                <div className="bg-white rounded-2xl p-6 md:p-8 border-2 border-indigo-200 shadow-lg">
+                <div className="content-panel-base p-6 md:p-8">
                   <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2"><MessageSquare className="w-7 h-7 text-indigo-600" />최신 리뷰</h2>
                   <div className="space-y-4">{details.reviews.map((review, i) => <ReviewCard key={i} review={review} />)}</div>
                 </div>
               )}
               {details.opening_hours?.weekday_text && (
-                 <div className="bg-white rounded-2xl p-6 md:p-8 border-2 border-indigo-200 shadow-lg">
+                 <div className="content-panel-base p-6 md:p-8">
                   <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2"><Clock className="w-7 h-7 text-indigo-600" />영업 시간</h2>
                   <ul className="space-y-1">{details.opening_hours.weekday_text.map((line, i) => <li key={i} className="text-gray-700">{line}</li>)}</ul>
                 </div>
@@ -137,7 +134,7 @@ export default function FoodDetailPage({ session, handleLogout }) {
           ) : <div className="bg-white rounded-2xl p-8 border-2 border-gray-200 text-center"><p className="text-gray-500">추가 상세 정보를 불러올 수 없습니다.</p></div>}
           
           {/* 지도 Iframe */}
-          <div className="bg-white rounded-2xl p-6 md:p-8 border-2 border-indigo-200 shadow-lg">
+          <div className="content-panel-base p-6 md:p-8">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">위치</h2>
             <div className="h-80 bg-gray-200 rounded-lg overflow-hidden">
               <iframe title="Restaurant Location" width="100%" height="100%" style={{ border: 0 }} loading="lazy" allowFullScreen src={`https://www.google.com/maps/embed/v1/place?key=${API_KEY}&q=place_id:${restaurant.place_id}`}></iframe>
@@ -149,6 +146,6 @@ export default function FoodDetailPage({ session, handleLogout }) {
           </div>
         </div>
       </main>
-    </div>
+    </Layout>
   );
 }

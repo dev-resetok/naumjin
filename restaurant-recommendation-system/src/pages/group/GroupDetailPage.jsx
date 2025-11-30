@@ -6,6 +6,7 @@ import { InfoCard } from "@components/common/card/Card";
 import routes from "@utils/constants/routes";
 import { getGroupById } from "@utils/helpers/storage";
 import { Users, MapPin, Calendar, Copy, Check, Settings } from "lucide-react";
+import Layout from "@components/common/Layout";
 
 /**
  * 그룹 상세 페이지
@@ -72,16 +73,12 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
   const hasRestaurants = group.restaurants && group.restaurants.length > 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
-      {/* 헤더 */}
-      <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
-        <HeaderBar session={session} handleLogout={handleLogout} />
-      </header>
+    <Layout session={session} handleLogout={handleLogout}>
 
       {/* 메인 콘텐츠 */}
       <main className="container mx-auto px-6 py-8">
         {/* 그룹 헤더 */}
-        <div className="bg-white rounded-2xl p-6 border-2 border-indigo-200 shadow-lg mb-6">
+        <div className="content-panel-base p-6 mb-6">
             <div className="flex justify-between items-start">
               <div>
                 <h1 className="text-3xl font-bold text-gray-800 mb-2">{group.name}</h1>
@@ -156,8 +153,7 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* 멤버 목록 */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl p-6 border-2 border-indigo-200 shadow-lg">
+            <div className="content-panel-base p-6">
               <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <Users className="w-6 h-6 text-indigo-600" />
                 그룹 멤버
@@ -273,6 +269,6 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
           </div>
         </div>
       </main>
-    </div>
+    </Layout>
   );
 }
