@@ -195,7 +195,7 @@ export default function MyPage({ session, token, handleLogout }) {
                 {user.preference ? (
                   <div className="space-y-4">
                     {user.preference.likedCategories?.length > 0 && (
-                      <div className="p-4 bg-green-50 rounded-lg">
+                      <div className="p-4 bg-green-50 rounded-lg shadow-md">
                         <h3 className="font-bold text-green-800 mb-2">
                           좋아하는 음식 종류
                         </h3>
@@ -212,7 +212,7 @@ export default function MyPage({ session, token, handleLogout }) {
                       </div>
                     )}
                     {user.preference.dislikedCategories?.length > 0 && (
-                      <div className="p-4 bg-yellow-50 rounded-lg">
+                      <div className="p-4 bg-yellow-50 rounded-lg shadow-md">
                         <h3 className="font-bold text-yellow-800 mb-2">
                           선호하지 않는 음식 종류
                         </h3>
@@ -229,7 +229,7 @@ export default function MyPage({ session, token, handleLogout }) {
                       </div>
                     )}
                     {user.preference.likedKeywords?.length > 0 && (
-                      <div className="p-4 bg-blue-50 rounded-lg">
+                      <div className="p-4 bg-blue-50 rounded-lg shadow-md">
                         <h3 className="font-bold text-blue-800 mb-2">
                           선호하는 맛/재료
                         </h3>
@@ -246,7 +246,7 @@ export default function MyPage({ session, token, handleLogout }) {
                       </div>
                     )}
                     {user.preference.dislikedKeywords?.length > 0 && (
-                      <div className="p-4 bg-orange-50 rounded-lg">
+                      <div className="p-4 bg-orange-50 rounded-lg shadow-md">
                         <h3 className="font-bold text-orange-800 mb-2">
                           피하고 싶은 맛/재료
                         </h3>
