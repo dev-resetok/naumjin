@@ -101,6 +101,7 @@ export function registerUser(userId, password, nickname) {
     pid: `PID_${Date.now()}`,
     createdAt: new Date().toISOString(),
     preference: null,
+    avatarColor: "indigo", // 기본 아바타 색상
   };
 
   users.push(newUser);

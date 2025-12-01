@@ -12,12 +12,21 @@ import routes from "@utils/constants/routes";
 export default function HeaderBar({ session, handleLogout }) {
   const navigate = useNavigate();
 
+  // 아바타 색상을 Tailwind 클래스로 매핑
+  const COLOR_MAP = {
+    indigo: { bg: "bg-indigo-600", hover: "hover:bg-indigo-700" },
+    red: { bg: "bg-red-500", hover: "hover:bg-red-600" },
+    green: { bg: "bg-green-500", hover: "hover:bg-green-600" },
+    blue: { bg: "bg-blue-500", hover: "hover:bg-blue-600" },
+    yellow: { bg: "bg-yellow-500", hover: "hover:bg-yellow-600" },
+    purple: { bg: "bg-purple-600", hover: "hover:bg-purple-700" },
+    pink: { bg: "bg-pink-500", hover: "hover:bg-pink-600" },
+  };
+
   // 로그아웃 확인 및 처리
   const onLogoutClick = () => {
     if (window.confirm("로그아웃 하시겠습니까?")) {
       handleLogout();
-      // App.jsx에서 상태가 변경되면 리디렉션은 자동으로 처리될 수 있지만,
-      // 즉각적인 피드백을 위해 홈으로 이동시킬 수 있습니다.
       navigate(routes.home);
     }
   };
@@ -34,33 +43,31 @@ export default function HeaderBar({ session, handleLogout }) {
       </button>
 
       {/* 네비게이션 메뉴 */}
-      <nav className="flex items-center gap-3">
+      <nav className="flex items-center gap-4">
         {session ? (
           <>
             {/* 로그인된 상태 */}
-            {/* <button
-              onClick={() => navigate(routes.home)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors"
-            >
-              <Home className="w-5 h-5 text-indigo-600" />
-              <span className="text-indigo-700">홈</span>
-            </button> */}
-
             <button
               onClick={() => navigate(routes.mypage)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors"
+              className={`flex items-center justify-center w-10 h-10 rounded-full ${
+                COLOR_MAP[session.user.avatarColor || "indigo"]?.bg ||
+                "bg-indigo-600"
+              } text-white font-bold ${
+                COLOR_MAP[session.user.avatarColor || "indigo"]?.hover ||
+                "hover:bg-indigo-700"
+              } transition-colors`}
+              aria-label="마이페이지로 이동"
             >
-              <User className="w-5 h-5 text-indigo-600" />
-              <span className="text-indigo-700">{session.user.nickname}</span>
+              {session.user.nickname[0]}
             </button>
 
-            {/* <button
+            <button
               onClick={onLogoutClick}
-              className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
             >
               <LogOut className="w-5 h-5" />
               <span>로그아웃</span>
-            </button> */}
+            </button>
           </>
         ) : (
           <>

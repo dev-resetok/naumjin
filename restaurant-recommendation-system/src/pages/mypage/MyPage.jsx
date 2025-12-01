@@ -85,6 +85,19 @@ export default function MyPage({ session, token, handleLogout }) {
 
   const { user } = session;
 
+  // 아바타 색상을 Tailwind 클래스로 매핑
+  const COLOR_MAP = {
+    indigo: "bg-indigo-600",
+    red: "bg-red-500",
+    green: "bg-green-500",
+    blue: "bg-blue-500",
+    yellow: "bg-yellow-500",
+    purple: "bg-purple-600",
+    pink: "bg-pink-500",
+  };
+  const avatarColorName = user.avatarColor || "indigo";
+  const avatarColorClass = COLOR_MAP[avatarColorName] || COLOR_MAP.indigo;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
       <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
@@ -97,7 +110,9 @@ export default function MyPage({ session, token, handleLogout }) {
           <div className="bg-white rounded-2xl p-8 border-2 border-indigo-200 shadow-lg mb-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-6">
-                <div className="w-24 h-24 bg-indigo-600 text-white rounded-full flex items-center justify-center text-4xl font-bold">
+                <div
+                  className={`w-24 h-24 ${avatarColorClass} text-white rounded-full flex items-center justify-center text-4xl font-bold`}
+                >
                   {user.nickname[0]}
                 </div>
                 <div>
