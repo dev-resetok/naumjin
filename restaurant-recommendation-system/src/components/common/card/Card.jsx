@@ -126,7 +126,9 @@ export function RestaurantCard({
  */
 export function GroupCard({ group, session, onClick, onLeave, onDelete }) {
   const isCreator = group.creatorId === session.user.id;
-  const isMember = group.members.some((m) => m.id === session.user.id);
+  const isMember = group.members.some((m) =>
+    typeof m === "string" ? m === session.user.id : m.id === session.user.id
+  );
 
   return (
     <div
