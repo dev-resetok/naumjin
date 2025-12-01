@@ -5,12 +5,67 @@ import Button from "@common/button/Button";
 import { InfoCard } from "@components/common/card/Card";
 import routes from "@utils/constants/routes";
 import { getGroupById } from "@utils/helpers/storage";
-import { Users, MapPin, Calendar, Copy, Check, Settings } from "lucide-react";
+import {
+  Users,
+  MapPin,
+  Calendar,
+  Copy,
+  Check,
+  Settings,
+  Heart,
+  ThumbsDown,
+  Utensils,
+} from "lucide-react";
+
+/**
+ * 그룹 선호도 합의 계산 함수
+ */
+const calculateGroupConsensus = (members) => {
+  const allLikedCategories = [];
+  const allDislikedCategories = [];
+  const allLikedKeywords = [];
+  const allDislikedKeywords = [];
+
+  members.forEach((member) => {
+    if (member.preference) {
+      if (member.preference.likedCategories) {
+        allLikedCategories.push(...member.preference.likedCategories);
+      }
+      if (member.preference.dislikedCategories) {
+        allDislikedCategories.push(...member.preference.dislikedCategories);
+      }
+      if (member.preference.likedKeywords) {
+        allLikedKeywords.push(...member.preference.likedKeywords);
+      }
+      if (member.preference.dislikedKeywords) {
+        allDislikedKeywords.push(...member.preference.dislikedKeywords);
+      }
+    }
+  });
+
+  const uniqueLikedCategories = [...new Set(allLikedCategories)];
+  const finalLikedCategories = uniqueLikedCategories.filter(
+    (cat) => !allDislikedCategories.includes(cat)
+  );
+
+  const uniqueLikedKeywords = [...new Set(allLikedKeywords)];
+  const finalLikedKeywords = uniqueLikedKeywords.filter(
+    (kw) => !allDislikedKeywords.includes(kw)
+  );
+
+  const finalDislikedCategories = [...new Set(allDislikedCategories)];
+  const finalDislikedKeywords = [...new Set(allDislikedKeywords)];
+
+  return {
+    likedCategories: finalLikedCategories,
+    dislikedCategories: finalDislikedCategories,
+    likedKeywords: finalLikedKeywords,
+    dislikedKeywords: finalDislikedKeywords,
+  };
+};
 
 /**
  * 그룹 상세 페이지
- * - 그룹 정보, 멤버 목록 확인
- * - 여행 계획 시작, 결과 보기 등 액션 수행
  */
 export default function GroupDetailPage({ session, token, handleLogout }) {
   const navigate = useNavigate();
@@ -19,7 +74,6 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
   const [group, setGroup] = useState(null);
   const [copied, setCopied] = useState(false);
 
-  // 그룹 정보 로드
   useEffect(() => {
     if (token) {
       const result = getGroupById(token, groupId);
@@ -33,7 +87,6 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
     }
   }, [groupId, token, navigate]);
 
-  // 코드 복사 기능
   const handleCopyCode = () => {
     if (group) {
       navigator.clipboard.writeText(group.code);
@@ -42,80 +95,123 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
     }
   };
 
-  // 여행 계획 시작
   const handleStartPlanning = () => {
     navigate(routes.tripPlan.replace(":groupId", groupId));
   };
 
-  // 식당 추천 결과 보기
+  // 식당 추천 결과 보기 (선택 페이지로)
   const handleViewResults = () => {
     navigate(routes.foodResult.replace(":groupId", groupId));
   };
 
+  // 최종 계획 보기
+  const handleViewFinalPlan = () => {
+    navigate(routes.finalPlan.replace(":groupId", groupId));
+  };
+
   if (!group || !session) {
-    return <div className="min-h-screen flex items-center justify-center">로딩 중...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        로딩 중...
+      </div>
+    );
   }
 
-  const membersWithoutPreference = group.members.filter(member => !member.preference);
+  const membersWithoutPreference = group.members.filter(
+    (member) => !member.preference
+  );
 
-  // 추천 요청 핸들러
-  const handleRequestRecommendation = (dayIndex) => {
+  // 한 번에 모든 날짜 추천 받기
+  const handleRequestRecommendation = () => {
     if (membersWithoutPreference.length > 0) {
-      const memberNames = membersWithoutPreference.map(m => m.nickname).join(', ');
-      alert(`아직 다음 멤버들이 선호도 조사를 완료하지 않았습니다: ${memberNames}`);
+      const memberNames = membersWithoutPreference
+        .map((m) => m.nickname)
+        .join(", ");
+      alert(
+        `아직 다음 멤버들이 선호도 조사를 완료하지 않았습니다: ${memberNames}`
+      );
       return;
     }
-    navigate(routes.loading.replace(":groupId", groupId).replace(":dayIndex", dayIndex));
+    // 모든 날짜를 한번에 처리하는 로딩 페이지로
+    navigate(
+      routes.loading.replace(":groupId", groupId).replace(":dayIndex", "all")
+    );
   };
 
   const isCreator = group.creatorId === session.user.id;
-  const hasRestaurants = group.restaurants && group.restaurants.length > 0;
+  const hasRestaurants =
+    group.restaurantsByDay ||
+    (group.restaurants && group.restaurants.length > 0);
+
+  // 선택된 식당 개수 확인
+  const selectedRestaurantsKey = `selectedRestaurants_${groupId}`;
+  const selectedRestaurants = JSON.parse(
+    localStorage.getItem(selectedRestaurantsKey) || "{}"
+  );
+
+  // 실제 여행 일수 계산
+  const totalTripDays = group.tripPlan?.days?.length || 0;
+
+  // 선택된 일수 계산 (키가 문자열이므로 정확히 카운트)
+  const selectedDays = Object.keys(selectedRestaurants).length;
+
+  // 모든 날짜가 선택되었는지 확인
+  const allDaysSelected = totalTripDays > 0 && selectedDays === totalTripDays;
+
+  const groupConsensus = calculateGroupConsensus(group.members);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
-      {/* 헤더 */}
       <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
         <HeaderBar session={session} handleLogout={handleLogout} />
       </header>
 
-      {/* 메인 콘텐츠 */}
       <main className="container mx-auto px-6 py-8">
         {/* 그룹 헤더 */}
         <div className="bg-white rounded-2xl p-6 border-2 border-indigo-200 shadow-lg mb-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-800 mb-2">{group.name}</h1>
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg font-mono font-bold">
-                    {group.code}
-                  </span>
-                  <button
-                    onClick={handleCopyCode}
-                    className={`p-2 rounded-lg transition-colors ${
-                      copied
-                        ? "bg-green-500 text-white"
-                        : "bg-indigo-100 text-indigo-600 hover:bg-indigo-200"
-                    }`}
-                  >
-                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                  </button>
-                  {copied && <span className="text-sm text-green-600">복사됨!</span>}
-                </div>
-              </div>
-              {isCreator && (
-                <Button 
-                  variant="secondary" 
-                  onClick={() => navigate(routes.groupManage.replace(':groupId', groupId))}
-                  className="flex items-center gap-2"
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                {group.name}
+              </h1>
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg font-mono font-bold">
+                  {group.code}
+                </span>
+                <button
+                  onClick={handleCopyCode}
+                  className={`p-2 rounded-lg transition-colors ${
+                    copied
+                      ? "bg-green-500 text-white"
+                      : "bg-indigo-100 text-indigo-600 hover:bg-indigo-200"
+                  }`}
                 >
-                  <Settings className="w-5 h-5" />
-                  그룹 관리
-                </Button>
-              )}
+                  {copied ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
+                </button>
+                {copied && (
+                  <span className="text-sm text-green-600">복사됨!</span>
+                )}
+              </div>
             </div>
+            {isCreator && (
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  navigate(routes.groupManage.replace(":groupId", groupId))
+                }
+              >
+                <Settings className="w-5 h-5" />
+                그룹 관리
+              </Button>
+            )}
+          </div>
 
           {/* 통계 카드 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <InfoCard
               title="멤버 수"
               value={`${group.members.length}명`}
@@ -132,31 +228,35 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
                 />
                 <InfoCard
                   title="여행 기간"
-                  value={`${Array.isArray(group.tripPlan.days) ? group.tripPlan.days.length : 0}일`}
+                  value={`${
+                    Array.isArray(group.tripPlan.days)
+                      ? group.tripPlan.days.length
+                      : 0
+                  }일`}
                   icon={<Calendar />}
                   color="purple"
                 />
-                <div className="col-span-full md:col-span-1 flex items-center justify-center">
-                  <Button
-                    variant="secondary"
-                    onClick={() => navigate(routes.tripPlan.replace(':groupId', groupId))}
-                    className="w-full"
-                  >
-                    여행 계획 수정
-                  </Button>
-                </div>
+                <InfoCard
+                  title="선택한 식당"
+                  value={`${selectedDays}/${totalTripDays}일`}
+                  icon={<Utensils />}
+                  color={allDaysSelected ? "green" : "orange"}
+                />
               </>
             ) : (
-              <div className="col-span-2 flex items-center justify-center bg-yellow-50 rounded-lg border-2 border-yellow-200 p-4">
-                <p className="text-yellow-800">아직 여행 계획이 설정되지 않았습니다</p>
+              <div className="col-span-3 flex items-center justify-center bg-yellow-50 rounded-lg border-2 border-yellow-200 p-4">
+                <p className="text-yellow-800">
+                  아직 여행 계획이 설정되지 않았습니다
+                </p>
               </div>
             )}
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* 멤버 목록 */}
-          <div className="lg:col-span-2">
+          {/* 왼쪽: 멤버 목록 + 그룹 선호도 합의 */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* 멤버 목록 */}
             <div className="bg-white rounded-2xl p-6 border-2 border-indigo-200 shadow-lg">
               <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <Users className="w-6 h-6 text-indigo-600" />
@@ -174,9 +274,13 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-gray-800">{member.nickname}</p>
+                          <p className="font-medium text-gray-800">
+                            {member.nickname}
+                          </p>
                           {!member.preference && (
-                            <span className="text-xs text-orange-500 font-semibold">(선호도 미설정)</span>
+                            <span className="text-xs text-orange-500 font-semibold">
+                              (선호도 미설정)
+                            </span>
                           )}
                         </div>
                         <p className="text-sm text-gray-500">@{member.id}</p>
@@ -191,9 +295,109 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
                 ))}
               </div>
             </div>
+
+            {/* 그룹 선호도 합의 */}
+            {membersWithoutPreference.length === 0 && (
+              <div className="bg-white rounded-2xl p-6 border-2 border-indigo-200 shadow-lg">
+                <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <Heart className="w-6 h-6 text-indigo-600" />
+                  그룹 선호도 합의
+                </h2>
+                <div className="space-y-4">
+                  {groupConsensus.likedCategories.length > 0 && (
+                    <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                      <h3 className="font-bold text-green-800 mb-2 flex items-center gap-2">
+                        <Heart className="w-5 h-5" />
+                        좋아하는 음식 종류
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {groupConsensus.likedCategories.map((cat) => (
+                          <span
+                            key={cat}
+                            className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium"
+                          >
+                            {cat}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-xs text-green-600 mt-2">
+                        ✅ 모두가 좋아하는 음식 (선호하지 않는 멤버가 있으면
+                        제외됨)
+                      </p>
+                    </div>
+                  )}
+
+                  {groupConsensus.likedKeywords.length > 0 && (
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <h3 className="font-bold text-blue-800 mb-2 flex items-center gap-2">
+                        <Heart className="w-5 h-5" />
+                        선호하는 맛/재료
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {groupConsensus.likedKeywords.map((kw) => (
+                          <span
+                            key={kw}
+                            className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
+                          >
+                            {kw}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-xs text-blue-600 mt-2">
+                        ✅ 그룹이 선호하는 맛 (피하고 싶은 멤버가 있으면 제외됨)
+                      </p>
+                    </div>
+                  )}
+
+                  {groupConsensus.dislikedCategories.length > 0 && (
+                    <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                      <h3 className="font-bold text-yellow-800 mb-2 flex items-center gap-2">
+                        <ThumbsDown className="w-5 h-5" />
+                        선호하지 않는 음식 종류
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {groupConsensus.dislikedCategories.map((cat) => (
+                          <span
+                            key={cat}
+                            className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium"
+                          >
+                            {cat}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-xs text-yellow-600 mt-2">
+                        ⚠️ 한 명이라도 선호하지 않으면 추천에서 제외됩니다
+                      </p>
+                    </div>
+                  )}
+
+                  {groupConsensus.dislikedKeywords.length > 0 && (
+                    <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                      <h3 className="font-bold text-orange-800 mb-2 flex items-center gap-2">
+                        <ThumbsDown className="w-5 h-5" />
+                        피하고 싶은 맛/재료
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {groupConsensus.dislikedKeywords.map((kw) => (
+                          <span
+                            key={kw}
+                            className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium"
+                          >
+                            {kw}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-xs text-orange-600 mt-2">
+                        ⚠️ 한 명이라도 피하고 싶으면 추천에서 제외됩니다
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* 액션 버튼 */}
+          {/* 오른쪽: 액션 버튼 */}
           <div className="space-y-4">
             {!group.tripPlan?.days ? (
               <div className="bg-white rounded-2xl p-6 border-2 border-indigo-200 shadow-lg">
@@ -210,52 +414,82 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
                   여행 계획 시작하기
                 </Button>
               </div>
-            ) : hasRestaurants ? (
-               <div className="bg-white rounded-2xl p-6 border-2 border-green-200 shadow-lg">
-                <h3 className="font-bold text-gray-800 mb-3">추천 식당</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  최근 추천 결과: {group.restaurants.length}개의 식당
-                </p>
-                <Button
-                  variant="primary"
-                  size="lg"
-                  onClick={handleViewResults}
-                  className="w-full mb-4"
-                >
-                  최근 추천 결과 보기
-                </Button>
-                <p className="text-xs text-gray-500 text-center mb-2">또는</p>
-                <h4 className="font-bold text-gray-700 text-center">다른 날짜 추천 받기</h4>
-                <div className="flex flex-col space-y-2 mt-2">
-                    {Array.isArray(group.tripPlan.days) && group.tripPlan.days.map((day, index) => (
-                        <Button
-                            key={index}
-                            variant="secondary"
-                            onClick={() => handleRequestRecommendation(index)}
-                        >
-                            {index + 1}일차: {day.description} 추천 받기
-                        </Button>
-                    ))}
-                </div>
-              </div>
             ) : (
-              <div className="bg-white rounded-2xl p-6 border-2 border-yellow-200 shadow-lg">
-                <h3 className="font-bold text-gray-800 mb-3">식당 추천 받기</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  각 날짜의 계획에 맞춰 식당을 추천받으세요.
-                </p>
-                <div className="flex flex-col space-y-2">
-                    {Array.isArray(group.tripPlan.days) && group.tripPlan.days.map((day, index) => (
-                        <Button
-                            key={index}
-                            variant="primary"
-                            onClick={() => handleRequestRecommendation(index)}
-                        >
-                            {index + 1}일차: {day.description} 추천 받기
-                        </Button>
-                    ))}
+              <>
+                {/* 식당 추천 */}
+                <div className="bg-white rounded-2xl p-6 border-2 border-indigo-200 shadow-lg">
+                  <h3 className="font-bold text-gray-800 mb-3">식당 추천</h3>
+                  {hasRestaurants ? (
+                    <>
+                      <p className="text-sm text-gray-600 mb-4">
+                        추천 식당 목록에서 원하는 식당을 선택하세요
+                      </p>
+                      <Button
+                        variant="primary"
+                        size="lg"
+                        onClick={handleViewResults}
+                        className="w-full"
+                      >
+                        <Utensils className="w-5 h-5" />
+                        식당 선택하기
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-gray-600 mb-4">
+                        모든 멤버의 선호도를 바탕으로 식당을 추천받으세요
+                      </p>
+                      <Button
+                        variant="primary"
+                        size="lg"
+                        onClick={handleRequestRecommendation}
+                        className="w-full"
+                        disabled={membersWithoutPreference.length > 0}
+                      >
+                        식당 추천 받기
+                      </Button>
+                      {membersWithoutPreference.length > 0 && (
+                        <p className="text-xs text-orange-600 mt-2">
+                          모든 멤버가 선호도를 입력해야 합니다
+                        </p>
+                      )}
+                    </>
+                  )}
                 </div>
-              </div>
+
+                {/* 최종 계획 */}
+                {allDaysSelected && (
+                  <div className="bg-white rounded-2xl p-6 border-2 border-green-200 shadow-lg">
+                    <h3 className="font-bold text-gray-800 mb-3">
+                      ✅ 계획 완료
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      모든 날짜의 식당을 선택했습니다!
+                    </p>
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      onClick={handleViewFinalPlan}
+                      className="w-full"
+                    >
+                      최종 계획 보기
+                    </Button>
+                  </div>
+                )}
+
+                {/* 여행 계획 수정 */}
+                <div className="bg-white rounded-2xl p-6 border-2 border-gray-200 shadow-lg">
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      navigate(routes.tripPlan.replace(":groupId", groupId))
+                    }
+                    className="w-full"
+                  >
+                    여행 계획 수정
+                  </Button>
+                </div>
+              </>
             )}
 
             {/* 안내 */}
@@ -266,8 +500,7 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
                 • 그룹 코드를 친구들에게 공유하세요
                 <br />
                 • 모든 멤버의 선호도가 중요합니다
-                <br />
-                • 여행 전에 미리 계획을 세우세요
+                <br />• 여행 전에 미리 계획을 세우세요
               </p>
             </div>
           </div>

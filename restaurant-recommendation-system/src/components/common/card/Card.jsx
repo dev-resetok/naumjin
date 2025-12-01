@@ -1,90 +1,119 @@
 import React from "react";
-import { MapPin, Star, DollarSign } from "lucide-react";
-
-// 가격 수준을 달러 기호로 렌더링하는 헬퍼 함수
-const renderPriceLevel = (priceLevel) => {
-  if (typeof priceLevel !== 'number' || priceLevel < 1) {
-    return <span className="text-gray-400">가격 정보 없음</span>;
-  }
-  return (
-    <span className="font-bold">
-      <span className="text-green-600">
-        {'$'.repeat(priceLevel)}
-      </span>
-      <span className="text-gray-300">
-        {'$'.repeat(4 - priceLevel)}
-      </span>
-    </span>
-  );
-};
+import { Star, MapPin, Users, Calendar, Crown, Check } from "lucide-react";
 
 /**
- * 식당 카드 컴포넌트
- * @param {Object} restaurant - 식당 정보
- * @param {Object} consensus - 그룹 합의 정보 (선택사항)
- * @param {function} onClick - 클릭 이벤트 핸들러
+ * 정보 카드 (통계 등)
  */
-export function RestaurantCard({ restaurant, consensus, onClick }) {
+export function InfoCard({ title, value, icon, color = "indigo" }) {
+  const colorClasses = {
+    indigo: "bg-indigo-50 border-indigo-200 text-indigo-700",
+    green: "bg-green-50 border-green-200 text-green-700",
+    purple: "bg-purple-50 border-purple-200 text-purple-700",
+    orange: "bg-orange-50 border-orange-200 text-orange-700",
+    blue: "bg-blue-50 border-blue-200 text-blue-700",
+  };
+
+  return (
+    <div className={`rounded-xl p-4 border-2 ${colorClasses[color]}`}>
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 flex items-center justify-center">{icon}</div>
+        <div>
+          <p className="text-sm font-medium opacity-80">{title}</p>
+          <p className="text-xl font-bold">{value}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 식당 카드
+ */
+export function RestaurantCard({
+  restaurant,
+  onClick,
+  showSelectButton = false,
+  isSelected = false,
+}) {
+  const photoUrl =
+    restaurant.images?.[0] ||
+    "https://via.placeholder.com/400x300?text=No+Image";
+
   return (
     <div
+      className={`bg-white rounded-xl overflow-hidden border-2 shadow-md hover:shadow-lg transition-all cursor-pointer ${
+        isSelected ? "border-green-500 bg-green-50" : "border-indigo-200"
+      }`}
       onClick={onClick}
-      className="bg-white rounded-xl p-5 border-2 border-indigo-200 hover:border-indigo-400 hover:shadow-lg transition-all cursor-pointer"
     >
-      {/* 식당 이미지 */}
-      <div className="w-full h-40 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
-        {restaurant.images && restaurant.images[0] ? (
-          <img 
-            src={restaurant.images[0]} 
-            alt={restaurant.name}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <span className="text-indigo-300 text-4xl">🍽️</span>
+      <div className="relative">
+        <img
+          src={photoUrl}
+          alt={restaurant.name}
+          className="w-full h-48 object-cover"
+        />
+        {isSelected && (
+          <div className="absolute top-3 right-3 bg-green-500 text-white rounded-full p-2">
+            <Check className="w-6 h-6" />
+          </div>
         )}
       </div>
+      <div className="p-4">
+        <h3 className="text-xl font-bold text-gray-800 mb-2">
+          {restaurant.name}
+        </h3>
 
-      {/* 식당 정보 */}
-      <div className="space-y-2">
-        <div className="flex items-start justify-between">
-          <h3 className="text-lg font-bold text-gray-800">{restaurant.name}</h3>
-          {consensus && (
-            <div className="px-2 py-1 bg-indigo-100 rounded-lg">
-              <span className="text-indigo-700 font-bold">{consensus.totalScore}점</span>
+        <div className="flex items-center gap-2 mb-3">
+          {restaurant.rating && (
+            <div className="flex items-center gap-1 bg-yellow-100 px-2 py-1 rounded">
+              <Star className="w-4 h-4 text-yellow-600" />
+              <span className="text-sm font-bold text-yellow-700">
+                {restaurant.rating}
+              </span>
             </div>
+          )}
+          {restaurant.user_ratings_total && (
+            <span className="text-sm text-gray-600">
+              ({restaurant.user_ratings_total}개 리뷰)
+            </span>
+          )}
+          {restaurant.avgPrice !== undefined && (
+            <span className="text-sm font-medium text-green-600">
+              {"₩".repeat(restaurant.avgPrice || 1)}
+            </span>
           )}
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-indigo-600">
-          <span className="px-2 py-1 bg-indigo-50 rounded">{restaurant.category}</span>
-          {restaurant.keywords?.map((keyword, idx) => (
-            <span key={idx} className="px-2 py-1 bg-gray-100 rounded text-gray-600">
-              {keyword}
+        {restaurant.category && (
+          <div className="mb-3">
+            <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-sm font-medium">
+              {restaurant.category}
             </span>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-3 text-sm text-gray-600">
-          <div className="flex items-center gap-1">
-            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-            <span>{restaurant.rating}</span>
           </div>
-          <div className="flex items-center gap-1">
-            <DollarSign className="w-4 h-4" />
-            {renderPriceLevel(restaurant.avgPrice)}
-          </div>
+        )}
+
+        <div className="flex items-start gap-2 text-gray-600 text-sm">
+          <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <span className="line-clamp-2">
+            {restaurant.location?.address || "주소 정보 없음"}
+          </span>
         </div>
 
-        <div className="flex items-center gap-1 text-sm text-gray-500">
-          <MapPin className="w-4 h-4" />
-          <span className="truncate">{restaurant.location?.address}</span>
-        </div>
-
-        {/* 그룹 합의 정보 */}
-        {consensus && consensus.likedMembers.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-gray-200">
-            <p className="text-sm text-gray-600">
-              👍 {consensus.likedMembers.map(m => m.nickname).join(", ")}님이 선호합니다
-            </p>
+        {showSelectButton && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <button
+              className={`w-full py-2 rounded-lg font-medium transition-colors ${
+                isSelected
+                  ? "bg-green-500 text-white hover:bg-green-600"
+                  : "bg-indigo-500 text-white hover:bg-indigo-600"
+              }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClick();
+              }}
+            >
+              {isSelected ? "✓ 선택됨" : "선택하기"}
+            </button>
           </div>
         )}
       </div>
@@ -93,56 +122,77 @@ export function RestaurantCard({ restaurant, consensus, onClick }) {
 }
 
 /**
- * 그룹 카드 컴포넌트
- * @param {Object} group - 그룹 정보
- * @param {function} onClick - 클릭 이벤트 핸들러
+ * 그룹 카드
  */
-export function GroupCard({ group, onClick }) {
+export function GroupCard({ group, session, onClick, onLeave, onDelete }) {
+  const isCreator = group.creatorId === session.user.id;
+  const isMember = group.members.some((m) => m.id === session.user.id);
+
   return (
     <div
+      className="bg-white rounded-xl p-5 border-2 border-indigo-200 shadow-md hover:shadow-lg transition-all cursor-pointer"
       onClick={onClick}
-      className="bg-white rounded-xl p-5 border-2 border-indigo-200 hover:border-indigo-400 hover:shadow-lg transition-all cursor-pointer"
     >
-      <div className="flex items-start justify-between mb-3">
-        <h3 className="text-xl font-bold text-indigo-800">{group.name}</h3>
-        <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg font-mono">
+      <div className="flex justify-between items-start mb-3">
+        <h3 className="text-xl font-bold text-gray-800">{group.name}</h3>
+        {isCreator && (
+          <span className="px-2 py-1 bg-indigo-600 text-white text-xs rounded flex items-center gap-1">
+            <Crown className="w-3 h-3" />
+            그룹장
+          </span>
+        )}
+      </div>
+
+      <div className="space-y-2 mb-4">
+        <div className="flex items-center gap-2 text-gray-600 text-sm">
+          <Users className="w-4 h-4" />
+          <span>{group.members.length}명의 멤버</span>
+        </div>
+        {group.tripPlan?.days && (
+          <div className="flex items-center gap-2 text-gray-600 text-sm">
+            <Calendar className="w-4 h-4" />
+            <span>{group.tripPlan.days.length}일 여행</span>
+          </div>
+        )}
+        {group.tripPlan?.days?.[0]?.description && (
+          <div className="flex items-center gap-2 text-gray-600 text-sm">
+            <MapPin className="w-4 h-4" />
+            <span>{group.tripPlan.days[0].description}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 mb-3">
+        <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded font-mono text-sm font-bold">
           {group.code}
         </span>
       </div>
 
-      <div className="space-y-2 text-sm text-gray-600">
-        <p>멤버 수: {group.members?.length || 0}명</p>
-        <p>생성일: {new Date(group.createdAt).toLocaleDateString()}</p>
-        {group.tripPlan?.days && (
-          <p className="text-indigo-600 font-bold">
-            📍 {group.tripPlan.days[0]?.description || '여행'} | {group.tripPlan.days.length}일 여행
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/**
- * 정보 카드 컴포넌트 (통계, 안내 등에 사용)
- */
-export function InfoCard({ title, value, icon, color = "indigo" }) {
-  const colorClasses = {
-    indigo: "bg-indigo-100 text-indigo-700 border-indigo-300",
-    green: "bg-green-100 text-green-700 border-green-300",
-    purple: "bg-purple-100 text-purple-700 border-purple-300",
-    orange: "bg-orange-100 text-orange-700 border-orange-300",
-  };
-
-  return (
-    <div className={`rounded-xl p-5 border-2 ${colorClasses[color]}`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium mb-1">{title}</p>
-          <p className="text-2xl font-bold">{value}</p>
+      {isMember && (
+        <div className="flex gap-2 pt-3 border-t border-gray-200">
+          {isCreator ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(group.id);
+              }}
+              className="flex-1 px-3 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
+            >
+              그룹 삭제
+            </button>
+          ) : (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onLeave(group.id);
+              }}
+              className="flex-1 px-3 py-2 bg-gray-500 text-white rounded-lg text-sm font-medium hover:bg-gray-600 transition-colors"
+            >
+              그룹 나가기
+            </button>
+          )}
         </div>
-        {icon && <div className="text-3xl">{icon}</div>}
-      </div>
+      )}
     </div>
   );
 }
