@@ -233,6 +233,17 @@ export default function FoodResultPage({ session, token, handleLogout }) {
 
   const totalDays = Object.keys(restaurantsByDay).length;
 
+  // 선택된 일차 계산 (최소 1개 이상 선택된 일차만 카운트)
+  const selectedDaysSet = new Set();
+  Object.keys(selectedRestaurants).forEach((key) => {
+    const dayIndex = key.split("_")[0];
+    const restaurants = selectedRestaurants[key];
+    if (Array.isArray(restaurants) && restaurants.length > 0) {
+      selectedDaysSet.add(dayIndex);
+    }
+  });
+  const selectedDaysCount = selectedDaysSet.size;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
       <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
@@ -251,7 +262,7 @@ export default function FoodResultPage({ session, token, handleLogout }) {
             </p>
           </div>
           <Button variant="primary" size="lg" onClick={handleComplete}>
-            선택 완료
+            선택 완료 ({selectedDaysCount}/{totalDays}일)
             <ChevronRight className="w-5 h-5 ml-2" />
           </Button>
         </div>
@@ -274,11 +285,15 @@ export default function FoodResultPage({ session, token, handleLogout }) {
                 const dinnerCount = (selectedRestaurants[`${idx}_dinner`] || [])
                   .length;
                 const totalSelected = breakfastCount + lunchCount + dinnerCount;
+                const hasSelection = totalSelected > 0;
 
                 return (
                   <button
                     key={dayIdx}
-                    onClick={() => setActiveDayIndex(idx)}
+                    onClick={() => {
+                      setActiveDayIndex(idx);
+                      setActiveMealType("breakfast"); // 일차 변경 시 자동으로 아침으로 리셋
+                    }}
                     className={`px-6 py-3 font-bold transition-all whitespace-nowrap flex items-center gap-2 rounded-lg ${
                       activeDayIndex === idx
                         ? "bg-indigo-600 text-white shadow-lg"
@@ -287,7 +302,7 @@ export default function FoodResultPage({ session, token, handleLogout }) {
                   >
                     <Calendar className="w-5 h-5" />
                     {dayLabel}일차
-                    {totalSelected > 0 && (
+                    {hasSelection && (
                       <span
                         className={`text-xs px-2 py-0.5 rounded-full ${
                           activeDayIndex === idx
@@ -437,7 +452,11 @@ export default function FoodResultPage({ session, token, handleLogout }) {
                 key={restaurant.id}
                 className={`bg-white rounded-2xl overflow-hidden border-2 shadow-lg transition-all ${
                   isSelectedInCurrentMeal
-                    ? "border-green-500 ring-4 ring-green-200"
+                    ? activeMealType === "breakfast"
+                      ? "border-orange-500 ring-4 ring-orange-200"
+                      : activeMealType === "lunch"
+                      ? "border-yellow-500 ring-4 ring-yellow-200"
+                      : "border-indigo-500 ring-4 ring-indigo-200"
                     : "border-gray-200 hover:border-indigo-400 hover:shadow-xl"
                 }`}
               >

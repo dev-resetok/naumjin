@@ -11,6 +11,7 @@ import { Users } from "lucide-react";
  * 그룹 참여 페이지
  * - 그룹 코드 입력
  * - 그룹 참여 처리
+ * - lockJoin 체크 (그룹 참여 제한 기능)
  */
 export default function GroupJoinPage({ session, token, handleLogout }) {
   const navigate = useNavigate();
@@ -54,7 +55,9 @@ export default function GroupJoinPage({ session, token, handleLogout }) {
               <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-full mb-4">
                 <Users className="w-8 h-8 text-indigo-600" />
               </div>
-              <h1 className="text-3xl font-bold text-gray-800">그룹 참여하기</h1>
+              <h1 className="text-3xl font-bold text-gray-800">
+                그룹 참여하기
+              </h1>
               <p className="text-gray-600 mt-2">
                 친구에게 받은 그룹 코드를 입력하세요
               </p>

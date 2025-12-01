@@ -229,19 +229,6 @@ export default function MyPage({ session, token, handleLogout }) {
                     </div>
                   </div>
                 )}
-
-                {/* 가격대 */}
-                {user.preference.budgetRange && (
-                  <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
-                    <h3 className="font-bold text-indigo-800 mb-2">
-                      선호하는 가격대
-                    </h3>
-                    <p className="text-indigo-700">
-                      {user.preference.budgetRange[0].toLocaleString()}원 ~{" "}
-                      {user.preference.budgetRange[1].toLocaleString()}원
-                    </p>
-                  </div>
-                )}
               </div>
             ) : (
               <div className="text-center py-8">
