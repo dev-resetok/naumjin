@@ -46,6 +46,13 @@ export default function TripPlanPage({ session, token, handleLogout }) {
   const [autocomplete, setAutocomplete] = useState(null);
   const [searchValue, setSearchValue] = useState("");
 
+  const [map, setMap] = useState(null);
+  const onLoadMap = useCallback((mapInstance) => setMap(mapInstance), []);
+  const onUnmountMap = useCallback(() => setMap(null), []);
+
+  const circleRef = useRef(null);
+
+
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: API_KEY || "",
     libraries,
@@ -172,7 +179,8 @@ export default function TripPlanPage({ session, token, handleLogout }) {
   const onMapClick = (e) => {
     const newLocation = { lat: e.latLng.lat(), lng: e.latLng.lng() };
     const newTripDays = [...tripDays];
-    newTripDays[activeDayIndex].location = newLocation;
+    // Create a NEW day object so currentDay's reference changes
+    newTripDays[activeDayIndex] = { ...newTripDays[activeDayIndex], location: newLocation };
     setTripDays(newTripDays);
   };
 
@@ -180,7 +188,8 @@ export default function TripPlanPage({ session, token, handleLogout }) {
   const handleRadiusChange = (newRadius) => {
     const radius = Math.max(100, parseInt(newRadius, 10));
     const newTripDays = [...tripDays];
-    newTripDays[activeDayIndex].radius = radius;
+    // Create a NEW day object so currentDay's reference changes
+    newTripDays[activeDayIndex] = { ...newTripDays[activeDayIndex], radius: radius };
     setTripDays(newTripDays);
   };
 
