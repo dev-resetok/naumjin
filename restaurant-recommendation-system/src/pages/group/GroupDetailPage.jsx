@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import HeaderBar from "@common/bar/HeaderBar";
 import Button from "@common/button/Button";
@@ -173,11 +173,21 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
   // 실제 여행 일수 계산
   const totalTripDays = group.tripPlan?.days?.length || 0;
 
-  // 선택된 일수 계산 (키가 문자열이므로 정확히 카운트)
-  const selectedDays = Object.keys(selectedRestaurants).length;
+  // 선택된 일차 계산 (최소 1개 이상 선택된 일차만 카운트)
+  const selectedDaysSet = new Set();
+  Object.keys(selectedRestaurants).forEach((key) => {
+    // key 형식: "0_breakfast", "1_lunch" 등
+    const dayIndex = key.split("_")[0];
+    const restaurants = selectedRestaurants[key];
+    if (Array.isArray(restaurants) && restaurants.length > 0) {
+      selectedDaysSet.add(dayIndex);
+    }
+  });
+  const selectedDaysCount = selectedDaysSet.size;
 
   // 모든 날짜가 선택되었는지 확인
-  const allDaysSelected = totalTripDays > 0 && selectedDays === totalTripDays;
+  const allDaysSelected =
+    totalTripDays > 0 && selectedDaysCount === totalTripDays;
 
   const groupConsensus = calculateGroupConsensus(group.members);
 
@@ -258,8 +268,8 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
                   color="purple"
                 />
                 <InfoCard
-                  title="선택한 식당"
-                  value={`${selectedDays}/${totalTripDays}일`}
+                  title="선택한 일차"
+                  value={`${selectedDaysCount}/${totalTripDays}일`}
                   icon={<Utensils />}
                   color={allDaysSelected ? "green" : "orange"}
                 />
@@ -457,7 +467,7 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
                         </Button>
 
                         {/* 선택된 식당이 있으면 최종 계획 보기 버튼 표시 */}
-                        {selectedDays > 0 && (
+                        {selectedDaysCount > 0 && (
                           <Button
                             variant="secondary"
                             size="lg"
@@ -468,7 +478,8 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
                             }
                             className="w-full"
                           >
-                            최종 계획 보기 ({selectedDays}일 선택됨)
+                            최종 계획 보기 ({selectedDaysCount}/{totalTripDays}
+                            일)
                           </Button>
                         )}
                       </div>
