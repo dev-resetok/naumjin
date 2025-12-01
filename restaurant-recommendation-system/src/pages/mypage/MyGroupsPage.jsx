@@ -72,9 +72,12 @@ export default function MyGroupsPage({ session, token, handleLogout }) {
             <h1 className="text-3xl font-bold text-gray-800 mb-2">나의 그룹</h1>
             <p className="text-gray-600">내가 참여하고 있는 모든 그룹 목록입니다.</p>
           </div>
-          <Button variant="primary" onClick={() => navigate(routes.groupCreate)}>
-            <Plus className="w-5 h-5 mr-2" />새 그룹 만들기
-          </Button>
+          <div className="flex items-center gap-4">
+            <Button variant="secondary" onClick={() => navigate(routes.mypage)}>마이페이지로 돌아가기</Button>
+            <Button variant="primary" onClick={() => navigate(routes.groupCreate)}>
+              <Plus className="w-5 h-5 mr-2" />새 그룹 만들기
+            </Button>
+          </div>
         </div>
 
         {groups.length > 0 ? (
@@ -107,10 +110,6 @@ export default function MyGroupsPage({ session, token, handleLogout }) {
             </div>
           </div>
         )}
-        
-        <div className="mt-8 flex justify-center">
-            <Button variant="secondary" onClick={() => navigate(routes.mypage)}>마이페이지로 돌아가기</Button>
-        </div>
       </main>
     </div>
   );
