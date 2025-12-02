@@ -69,6 +69,8 @@ const MEAL_TYPES = [
     textColor: "text-orange-600",
     borderColor: "border-orange-600",
     bgLight: "bg-orange-50",
+    selectionBorder: "border-orange-500",
+    selectionRing: "ring-orange-200",
   },
   {
     id: "lunch",
@@ -78,6 +80,8 @@ const MEAL_TYPES = [
     textColor: "text-yellow-600",
     borderColor: "border-yellow-600",
     bgLight: "bg-yellow-50",
+    selectionBorder: "border-yellow-500",
+    selectionRing: "ring-yellow-200",
   },
   {
     id: "dinner",
@@ -86,7 +90,9 @@ const MEAL_TYPES = [
     color: "bg-indigo-500",
     textColor: "text-indigo-600",
     borderColor: "border-indigo-600",
-    bgLight: "bg-indigo-50",
+bgLight: "bg-indigo-50",
+    selectionBorder: "border-indigo-500",
+    selectionRing: "ring-indigo-200",
   },
 ];
 
@@ -497,7 +503,9 @@ export default function FoodResultPage({ session, token, handleLogout }) {
   const currentMealSelections = selectedRestaurants[currentMealKey] || [];
 
   const totalDays = Object.keys(restaurantsByDay).length;
+  const activeMealInfo = MEAL_TYPES.find((m) => m.id === activeMealType);
 
+  // 선택된 일차 계산 (최소 1개 이상 선택된 일차만 카운트)
   const selectedDaysSet = new Set();
   Object.keys(selectedRestaurants).forEach((key) => {
     const dayIndex = key.split("_")[0];
@@ -607,15 +615,15 @@ export default function FoodResultPage({ session, token, handleLogout }) {
                   className={`flex-1 px-4 py-3 rounded-xl border-2 transition-all ${
                     meal.id === "breakfast"
                       ? isActive
-                        ? "border-orange-600 bg-orange-600 shadow-lg"
-                        : "border-orange-300 bg-orange-100"
+                        ? "border-orange-500 bg-orange-500 shadow-lg"
+                        : "border-orange-300 bg-orange-100 hover:bg-orange-200 hover:border-orange-400"
                       : meal.id === "lunch"
                       ? isActive
-                        ? "border-yellow-600 bg-yellow-600 shadow-lg"
-                        : "border-yellow-300 bg-yellow-100"
+                        ? "border-yellow-500 bg-yellow-500 shadow-lg"
+                        : "border-yellow-300 bg-yellow-100 hover:bg-yellow-200 hover:border-yellow-400"
                       : isActive
-                      ? "border-indigo-600 bg-indigo-600 shadow-lg"
-                      : "border-indigo-300 bg-indigo-100"
+                      ? "border-indigo-500 bg-indigo-500 shadow-lg"
+                      : "border-indigo-300 bg-indigo-100 hover:bg-indigo-200 hover:border-indigo-400"
                   }`}
                 >
                   <div className="flex items-center justify-center gap-2">
@@ -770,10 +778,10 @@ export default function FoodResultPage({ session, token, handleLogout }) {
             return (
               <div
                 key={restaurant.id}
-                className={`bg-white rounded-2xl overflow-hidden border-2 shadow-lg transition-all ${
+                className={`bg-white rounded-2xl overflow-hidden border-2 shadow-lg transition-all transform ${
                   isSelectedInCurrentMeal
-                    ? "border-green-500 ring-4 ring-green-200"
-                    : "border-gray-200 hover:border-indigo-400 hover:shadow-xl"
+                    ? `${activeMealInfo.selectionBorder} ring-4 ${activeMealInfo.selectionRing}`
+                    : "border-gray-200 hover:shadow-2xl hover:scale-[1.02]"
                 }`}
               >
                 {/* 이미지 */}
