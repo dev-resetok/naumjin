@@ -99,7 +99,7 @@ export default function FoodResultPage({ session, token, handleLogout }) {
   const [restaurantsByDay, setRestaurantsByDay] = useState({});
   const [selectedRestaurants, setSelectedRestaurants] = useState({});
   const [activeDayIndex, setActiveDayIndex] = useState(0);
-  const [activeMealType, setActiveMealType] = useState("breakfast"); // 현재 선택 중인 끼니
+  const [activeMealType, setActiveMealType] = useState("breakfast");
   const [filterRating, setFilterRating] = useState(0);
   const [filterPrice, setFilterPrice] = useState(0); // 0 = 전체
 
@@ -122,7 +122,6 @@ export default function FoodResultPage({ session, token, handleLogout }) {
         tripDaysLength: groupData.tripPlan?.days?.length,
       });
 
-      // 새로운 구조 restaurantsByDay 우선, 없으면 기존 restaurants 사용
       let restaurantsData = {};
 
       if (
@@ -142,7 +141,6 @@ export default function FoodResultPage({ session, token, handleLogout }) {
         return;
       }
 
-      // 데이터 변환
       const adaptedRestaurantsByDay = {};
       for (const dayIdx in restaurantsData) {
         const dayRestaurants = restaurantsData[dayIdx];
@@ -156,7 +154,6 @@ export default function FoodResultPage({ session, token, handleLogout }) {
       setGroup(groupData);
       setRestaurantsByDay(adaptedRestaurantsByDay);
 
-      // localStorage에서 선택된 식당 로드
       const saved = localStorage.getItem(selectedRestaurantsKey);
       if (saved) {
         setSelectedRestaurants(JSON.parse(saved));
@@ -164,23 +161,17 @@ export default function FoodResultPage({ session, token, handleLogout }) {
     }
   }, [groupId, token, navigate, selectedRestaurantsKey]);
 
-  // 식당 선택/해제 (끼니별)
   const handleSelectRestaurant = (dayIdx, mealType, restaurant) => {
-    const key = `${dayIdx}_${mealType}`; // "0_breakfast", "0_lunch", "0_dinner"
+    const key = `${dayIdx}_${mealType}`;
 
     setSelectedRestaurants((prev) => {
       const newSelected = { ...prev };
-
-      // 해당 끼니에 이미 선택된 식당 배열 가져오기 (새 배열로 복사)
       const currentMealSelections = [...(newSelected[key] || [])];
-
-      // 이미 선택된 식당인지 확인
       const existingIndex = currentMealSelections.findIndex(
         (r) => r.id === restaurant.id
       );
 
       if (existingIndex >= 0) {
-        // 선택 해제 - 불변성 유지
         const updatedSelections = currentMealSelections.filter(
           (_, idx) => idx !== existingIndex
         );
@@ -188,14 +179,12 @@ export default function FoodResultPage({ session, token, handleLogout }) {
           `❌ 선택 해제: ${dayIdx}일차 ${mealType} - ${restaurant.name}`
         );
 
-        // 배열이 비어있으면 키 삭제, 아니면 업데이트
         if (updatedSelections.length === 0) {
           delete newSelected[key];
         } else {
           newSelected[key] = updatedSelections;
         }
       } else {
-        // 선택 추가 (최대 5개)
         if (currentMealSelections.length < 5) {
           const updatedSelections = [...currentMealSelections, restaurant];
           console.log(
@@ -208,7 +197,6 @@ export default function FoodResultPage({ session, token, handleLogout }) {
         }
       }
 
-      // localStorage 저장
       localStorage.setItem(selectedRestaurantsKey, JSON.stringify(newSelected));
       console.log("💾 저장된 데이터:", newSelected);
 
@@ -216,12 +204,10 @@ export default function FoodResultPage({ session, token, handleLogout }) {
     });
   };
 
-  // 선택 완료
   const handleComplete = () => {
     console.log("🎉 선택 완료 버튼 클릭");
     console.log("💾 선택된 데이터:", selectedRestaurants);
 
-    // 선택된 항목이 하나라도 있으면 진행 가능
     if (Object.keys(selectedRestaurants).length === 0) {
       alert("최소 하나의 식당을 선택해주세요.");
       return;
@@ -255,7 +241,6 @@ export default function FoodResultPage({ session, token, handleLogout }) {
     );
   }
 
-  // 현재 끼니의 선택된 식당들
   const currentMealKey = `${activeDayIndex}_${activeMealType}`;
   const currentMealSelections = selectedRestaurants[currentMealKey] || [];
 
@@ -304,7 +289,6 @@ export default function FoodResultPage({ session, token, handleLogout }) {
                 const idx = parseInt(dayIdx);
                 const dayLabel = idx + 1;
 
-                // 해당 일차의 모든 끼니 선택 개수 확인
                 const breakfastCount = (
                   selectedRestaurants[`${idx}_breakfast`] || []
                 ).length;
@@ -438,6 +422,7 @@ export default function FoodResultPage({ session, token, handleLogout }) {
             <div>
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-indigo-600" />
+                <span className="font-semibold text-gray-800 text-sm">최소 별점:</span>
                 <span className="font-semibold text-gray-800 text-sm">
                   최소 별점:
                 </span>
@@ -503,12 +488,10 @@ export default function FoodResultPage({ session, token, handleLogout }) {
         {/* 식당 목록 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredRestaurants.map((restaurant, index) => {
-            // 현재 끼니 선택 여부
             const isSelectedInCurrentMeal = currentMealSelections.some(
               (r) => r.id === restaurant.id
             );
 
-            // 모든 끼니에서 선택 여부 확인
             const breakfastKey = `${activeDayIndex}_breakfast`;
             const lunchKey = `${activeDayIndex}_lunch`;
             const dinnerKey = `${activeDayIndex}_dinner`;
@@ -550,7 +533,6 @@ export default function FoodResultPage({ session, token, handleLogout }) {
                         alt={restaurant.name}
                         className="w-full h-full object-cover"
                       />
-                      {/* 그라데이션 오버레이 - 위쪽이 어둡고 아래가 밝음 */}
                       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-transparent"></div>
                     </>
                   ) : (
@@ -600,7 +582,6 @@ export default function FoodResultPage({ session, token, handleLogout }) {
 
                 {/* 정보 */}
                 <div className="p-4">
-                  {/* 제목 */}
                   <h3 className="text-lg font-bold text-gray-800 truncate mb-2">
                     {restaurant.name}
                   </h3>
