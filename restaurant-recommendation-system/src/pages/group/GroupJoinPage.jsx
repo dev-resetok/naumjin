@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import HeaderBar from "@common/bar/HeaderBar";
 import Button from "@common/button/Button";
 import { Input } from "@components/common/Input";
+import { useToast } from "@components/common/Toast";
 import routes from "@utils/constants/routes";
 import { joinGroup } from "@utils/helpers/storage";
 import { Users } from "lucide-react";
@@ -11,9 +12,11 @@ import { Users } from "lucide-react";
  * 그룹 참여 페이지
  * - 그룹 코드 입력
  * - 그룹 참여 처리
+ * - lockJoin 체크 (그룹 참여 제한 기능)
  */
 export default function GroupJoinPage({ session, token, handleLogout }) {
   const navigate = useNavigate();
+  const toast = useToast();
   const [groupCode, setGroupCode] = useState("");
   const [error, setError] = useState("");
 
@@ -31,8 +34,10 @@ export default function GroupJoinPage({ session, token, handleLogout }) {
     const result = joinGroup(token, groupCode);
 
     if (result.success) {
-      alert(`'${result.group.name}' 그룹에 참여했습니다!`);
-      navigate(routes.groupDetail.replace(":groupId", result.group.id));
+      toast.success(`'${result.group.name}' 그룹에 참여했습니다! 🎉`);
+      setTimeout(() => {
+        navigate(routes.groupDetail.replace(":groupId", result.group.id));
+      }, 1000);
     } else {
       setError(result.message);
     }
@@ -41,20 +46,22 @@ export default function GroupJoinPage({ session, token, handleLogout }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
       {/* 헤더 */}
-      <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
-        <HeaderBar session={session} handleLogout={handleLogout} />
-      </header>
+      <header className="sticky top-0 z-50 p-2 bg-white/80 backdrop-blur-3xl rounded-none shadow-sm">
+              <HeaderBar session={session} handleLogout={handleLogout} />
+            </header>
 
       {/* 메인 콘텐츠 */}
       <main className="container mx-auto px-6 py-16 flex items-center justify-center">
         <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl p-8 border-2 border-indigo-200 shadow-lg">
+          <div className="bg-white rounded-2xl p-8 shadow-xl">
             {/* 타이틀 */}
             <div className="text-center mb-8">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-full mb-4">
                 <Users className="w-8 h-8 text-indigo-600" />
               </div>
-              <h1 className="text-3xl font-bold text-gray-800">그룹 참여하기</h1>
+              <h1 className="text-3xl font-bold text-gray-800">
+                그룹 참여하기
+              </h1>
               <p className="text-gray-600 mt-2">
                 친구에게 받은 그룹 코드를 입력하세요
               </p>
@@ -78,7 +85,7 @@ export default function GroupJoinPage({ session, token, handleLogout }) {
                 required
               />
 
-              <div className="bg-indigo-50 rounded-lg p-4 border-2 border-indigo-200">
+              <div className="bg-indigo-50 rounded-lg shadow-lg shadow-indigo-100 p-4">
                 <p className="text-sm text-indigo-800">
                   💡 <strong>그룹 코드는 어디서 받나요?</strong>
                   <br />

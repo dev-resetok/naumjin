@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import HeaderBar from "@common/bar/HeaderBar";
 import Button from "@common/button/Button";
@@ -17,14 +17,34 @@ import {
   Utensils,
 } from "lucide-react";
 
+const COLOR_MAP = {
+  indigo: {
+    bg: "bg-indigo-600",
+    ring: "ring-indigo-500",
+    bgLight: "bg-indigo-50",
+  },
+  red: { bg: "bg-red-500", ring: "ring-red-500", bgLight: "bg-red-50" },
+  green: { bg: "bg-green-500", ring: "ring-green-500", bgLight: "bg-green-50" },
+  blue: { bg: "bg-blue-500", ring: "ring-blue-500", bgLight: "bg-blue-50" },
+  yellow: {
+    bg: "bg-yellow-500",
+    ring: "ring-yellow-500",
+    bgLight: "bg-yellow-50",
+  },
+  purple: {
+    bg: "bg-purple-600",
+    ring: "ring-purple-500",
+    bgLight: "bg-purple-50",
+  },
+  pink: { bg: "bg-pink-500", ring: "ring-pink-500", bgLight: "bg-pink-50" },
+};
+
 /**
- * 그룹 선호도 합의 계산 함수
+ * 그룹 선호도 합의 계산 함수 (맛/재료 제거)
  */
 const calculateGroupConsensus = (members) => {
   const allLikedCategories = [];
   const allDislikedCategories = [];
-  const allLikedKeywords = [];
-  const allDislikedKeywords = [];
 
   members.forEach((member) => {
     if (member.preference) {
@@ -34,12 +54,6 @@ const calculateGroupConsensus = (members) => {
       if (member.preference.dislikedCategories) {
         allDislikedCategories.push(...member.preference.dislikedCategories);
       }
-      if (member.preference.likedKeywords) {
-        allLikedKeywords.push(...member.preference.likedKeywords);
-      }
-      if (member.preference.dislikedKeywords) {
-        allDislikedKeywords.push(...member.preference.dislikedKeywords);
-      }
     }
   });
 
@@ -48,19 +62,11 @@ const calculateGroupConsensus = (members) => {
     (cat) => !allDislikedCategories.includes(cat)
   );
 
-  const uniqueLikedKeywords = [...new Set(allLikedKeywords)];
-  const finalLikedKeywords = uniqueLikedKeywords.filter(
-    (kw) => !allDislikedKeywords.includes(kw)
-  );
-
   const finalDislikedCategories = [...new Set(allDislikedCategories)];
-  const finalDislikedKeywords = [...new Set(allDislikedKeywords)];
 
   return {
     likedCategories: finalLikedCategories,
     dislikedCategories: finalDislikedCategories,
-    likedKeywords: finalLikedKeywords,
-    dislikedKeywords: finalDislikedKeywords,
   };
 };
 
@@ -99,12 +105,10 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
     navigate(routes.tripPlan.replace(":groupId", groupId));
   };
 
-  // 식당 추천 결과 보기 (선택 페이지로)
   const handleViewResults = () => {
     navigate(routes.foodResult.replace(":groupId", groupId));
   };
 
-  // 최종 계획 보기
   const handleViewFinalPlan = () => {
     navigate(routes.finalPlan.replace(":groupId", groupId));
   };
@@ -121,7 +125,6 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
     (member) => !member.preference
   );
 
-  // 한 번에 모든 날짜 추천 받기
   const handleRequestRecommendation = () => {
     if (membersWithoutPreference.length > 0) {
       const memberNames = membersWithoutPreference
@@ -132,10 +135,12 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
       );
       return;
     }
-    // 모든 날짜를 한번에 처리하는 로딩 페이지로
-    navigate(
-      routes.loading.replace(":groupId", groupId).replace(":dayIndex", "all")
-    );
+
+    const targetPath = routes.loading
+      .replace(":groupId", groupId)
+      .replace(":dayIndex", "all");
+
+    navigate(targetPath);
   };
 
   const isCreator = group.creatorId === session.user.id;
@@ -143,32 +148,37 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
     group.restaurantsByDay ||
     (group.restaurants && group.restaurants.length > 0);
 
-  // 선택된 식당 개수 확인
   const selectedRestaurantsKey = `selectedRestaurants_${groupId}`;
   const selectedRestaurants = JSON.parse(
     localStorage.getItem(selectedRestaurantsKey) || "{}"
   );
 
-  // 실제 여행 일수 계산
   const totalTripDays = group.tripPlan?.days?.length || 0;
 
-  // 선택된 일수 계산 (키가 문자열이므로 정확히 카운트)
-  const selectedDays = Object.keys(selectedRestaurants).length;
+  const selectedDaysSet = new Set();
+  Object.keys(selectedRestaurants).forEach((key) => {
+    const dayIndex = key.split("_")[0];
+    const restaurants = selectedRestaurants[key];
+    if (Array.isArray(restaurants) && restaurants.length > 0) {
+      selectedDaysSet.add(dayIndex);
+    }
+  });
+  const selectedDaysCount = selectedDaysSet.size;
 
-  // 모든 날짜가 선택되었는지 확인
-  const allDaysSelected = totalTripDays > 0 && selectedDays === totalTripDays;
+  const allDaysSelected =
+    totalTripDays > 0 && selectedDaysCount === totalTripDays;
 
   const groupConsensus = calculateGroupConsensus(group.members);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
-      <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
+      <header className="sticky top-0 z-50 p-2 bg-white/80 backdrop-blur-3xl rounded-none shadow-sm">
         <HeaderBar session={session} handleLogout={handleLogout} />
       </header>
 
       <main className="container mx-auto px-6 py-8">
         {/* 그룹 헤더 */}
-        <div className="bg-white rounded-2xl p-6 border-2 border-indigo-200 shadow-lg mb-6">
+        <div className="bg-white rounded-2xl p-6 shadow-lg mb-6">
           <div className="flex justify-between items-start mb-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-800 mb-2">
@@ -237,14 +247,14 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
                   color="purple"
                 />
                 <InfoCard
-                  title="선택한 식당"
-                  value={`${selectedDays}/${totalTripDays}일`}
+                  title="선택한 일차"
+                  value={`${selectedDaysCount}/${totalTripDays}일`}
                   icon={<Utensils />}
                   color={allDaysSelected ? "green" : "orange"}
                 />
               </>
             ) : (
-              <div className="col-span-3 flex items-center justify-center bg-yellow-50 rounded-lg border-2 border-yellow-200 p-4">
+              <div className="col-span-3 flex items-center justify-center bg-yellow-50 rounded-lg shadow-md p-4">
                 <p className="text-yellow-800">
                   아직 여행 계획이 설정되지 않았습니다
                 </p>
@@ -257,55 +267,61 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
           {/* 왼쪽: 멤버 목록 + 그룹 선호도 합의 */}
           <div className="lg:col-span-2 space-y-6">
             {/* 멤버 목록 */}
-            <div className="bg-white rounded-2xl p-6 border-2 border-indigo-200 shadow-lg">
+            <div className="bg-white rounded-2xl p-6 shadow-lg">
               <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <Users className="w-6 h-6 text-indigo-600" />
                 그룹 멤버
               </h2>
               <div className="space-y-3">
-                {group.members.map((member) => (
-                  <div
-                    key={member.id}
-                    className="flex items-center justify-between p-4 bg-indigo-50 rounded-lg border border-indigo-200"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">
-                        {member.nickname[0]}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-gray-800">
-                            {member.nickname}
-                          </p>
-                          {!member.preference && (
-                            <span className="text-xs text-orange-500 font-semibold">
-                              (선호도 미설정)
-                            </span>
-                          )}
+                {group.members.map((member) => {
+                  const color = member.avatarColor || "indigo";
+
+                  return (
+                    <div
+                      key={member.id}
+                      className={`flex items-center justify-between p-4 ${COLOR_MAP[color].bgLight} rounded-lg shadow-md`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-10 h-10 ${COLOR_MAP[color].bg} text-white rounded-full flex items-center justify-center font-bold`}
+                        >
+                          {member.nickname[0]}
                         </div>
-                        <p className="text-sm text-gray-500">@{member.id}</p>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-800">
+                              {member.nickname}
+                            </p>
+                            {!member.preference && (
+                              <span className="text-xs text-orange-500 font-semibold">
+                                (선호도 미설정)
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-500">@{member.id}</p>
+                        </div>
                       </div>
+                      {member.id === group.creatorId && (
+                        <span className="px-2 py-1 bg-indigo-600 text-white text-xs rounded">
+                          그룹장
+                        </span>
+                      )}
                     </div>
-                    {member.id === group.creatorId && (
-                      <span className="px-2 py-1 bg-indigo-600 text-white text-xs rounded">
-                        그룹장
-                      </span>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
-            {/* 그룹 선호도 합의 */}
+            {/* 그룹 선호도 합의 (맛/재료 제거) */}
             {membersWithoutPreference.length === 0 && (
-              <div className="bg-white rounded-2xl p-6 border-2 border-indigo-200 shadow-lg">
+              <div className="bg-white rounded-2xl p-6 shadow-lg">
                 <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                   <Heart className="w-6 h-6 text-indigo-600" />
                   그룹 선호도 합의
                 </h2>
                 <div className="space-y-4">
                   {groupConsensus.likedCategories.length > 0 && (
-                    <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                    <div className="p-4 bg-green-50 rounded-lg shadow-md">
                       <h3 className="font-bold text-green-800 mb-2 flex items-center gap-2">
                         <Heart className="w-5 h-5" />
                         좋아하는 음식 종류
@@ -327,30 +343,8 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
                     </div>
                   )}
 
-                  {groupConsensus.likedKeywords.length > 0 && (
-                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                      <h3 className="font-bold text-blue-800 mb-2 flex items-center gap-2">
-                        <Heart className="w-5 h-5" />
-                        선호하는 맛/재료
-                      </h3>
-                      <div className="flex flex-wrap gap-2">
-                        {groupConsensus.likedKeywords.map((kw) => (
-                          <span
-                            key={kw}
-                            className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
-                          >
-                            {kw}
-                          </span>
-                        ))}
-                      </div>
-                      <p className="text-xs text-blue-600 mt-2">
-                        ✅ 그룹이 선호하는 맛 (피하고 싶은 멤버가 있으면 제외됨)
-                      </p>
-                    </div>
-                  )}
-
                   {groupConsensus.dislikedCategories.length > 0 && (
-                    <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <div className="p-4 bg-yellow-50 rounded-lg shadow-md">
                       <h3 className="font-bold text-yellow-800 mb-2 flex items-center gap-2">
                         <ThumbsDown className="w-5 h-5" />
                         선호하지 않는 음식 종류
@@ -370,28 +364,6 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
                       </p>
                     </div>
                   )}
-
-                  {groupConsensus.dislikedKeywords.length > 0 && (
-                    <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
-                      <h3 className="font-bold text-orange-800 mb-2 flex items-center gap-2">
-                        <ThumbsDown className="w-5 h-5" />
-                        피하고 싶은 맛/재료
-                      </h3>
-                      <div className="flex flex-wrap gap-2">
-                        {groupConsensus.dislikedKeywords.map((kw) => (
-                          <span
-                            key={kw}
-                            className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium"
-                          >
-                            {kw}
-                          </span>
-                        ))}
-                      </div>
-                      <p className="text-xs text-orange-600 mt-2">
-                        ⚠️ 한 명이라도 피하고 싶으면 추천에서 제외됩니다
-                      </p>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
@@ -400,7 +372,7 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
           {/* 오른쪽: 액션 버튼 */}
           <div className="space-y-4">
             {!group.tripPlan?.days ? (
-              <div className="bg-white rounded-2xl p-6 border-2 border-indigo-200 shadow-lg">
+              <div className="bg-white rounded-2xl p-6 shadow-lg">
                 <h3 className="font-bold text-gray-800 mb-3">다음 단계</h3>
                 <p className="text-sm text-gray-600 mb-4">
                   여행 계획을 설정하고 멤버들의 음식 선호도를 입력하세요.
@@ -417,22 +389,40 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
             ) : (
               <>
                 {/* 식당 추천 */}
-                <div className="bg-white rounded-2xl p-6 border-2 border-indigo-200 shadow-lg">
+                <div className="bg-white rounded-2xl p-6 shadow-lg">
                   <h3 className="font-bold text-gray-800 mb-3">식당 추천</h3>
                   {hasRestaurants ? (
                     <>
                       <p className="text-sm text-gray-600 mb-4">
                         추천 식당 목록에서 원하는 식당을 선택하세요
                       </p>
-                      <Button
-                        variant="primary"
-                        size="lg"
-                        onClick={handleViewResults}
-                        className="w-full"
-                      >
-                        <Utensils className="w-5 h-5" />
-                        식당 선택하기
-                      </Button>
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          variant="primary"
+                          size="lg"
+                          onClick={handleViewResults}
+                          className="w-full"
+                        >
+                          <Utensils className="w-5 h-5" />
+                          식당 선택하기
+                        </Button>
+
+                        {selectedDaysCount > 0 && (
+                          <Button
+                            variant="secondary"
+                            size="lg"
+                            onClick={() =>
+                              navigate(
+                                routes.finalPlan.replace(":groupId", groupId)
+                              )
+                            }
+                            className="w-full"
+                          >
+                            최종 계획 보기 ({selectedDaysCount}/{totalTripDays}
+                            일)
+                          </Button>
+                        )}
+                      </div>
                     </>
                   ) : (
                     <>
@@ -459,7 +449,7 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
 
                 {/* 최종 계획 */}
                 {allDaysSelected && (
-                  <div className="bg-white rounded-2xl p-6 border-2 border-green-200 shadow-lg">
+                  <div className="bg-white rounded-2xl p-6 shadow-lg">
                     <h3 className="font-bold text-gray-800 mb-3">
                       ✅ 계획 완료
                     </h3>
@@ -493,7 +483,7 @@ export default function GroupDetailPage({ session, token, handleLogout }) {
             )}
 
             {/* 안내 */}
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-5 border-2 border-indigo-200">
+            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-5 border-2 border-indigo-200 shadow-lg shadow-indigo-200">
               <p className="text-sm text-gray-700">
                 💡 <strong>팁:</strong>
                 <br />

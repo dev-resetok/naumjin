@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   GoogleMap,
   useJsApiLoader,
-  Circle,
   Autocomplete,
 } from "@react-google-maps/api";
 import HeaderBar from "@common/bar/HeaderBar";
@@ -28,7 +27,7 @@ const defaultCenter = {
   lng: 126.978,
 };
 
-const libraries = ["places", "marker"]; // marker 라이브러리 추가
+const libraries = ["places", "marker"];
 
 /**
  * 여행 계획 페이지 (지도 기반)
@@ -42,16 +41,12 @@ export default function TripPlanPage({ session, token, handleLogout }) {
   const [tripDays, setTripDays] = useState([]);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [map, setMap] = useState(null);
-  const [marker, setMarker] = useState(null);
   const [autocomplete, setAutocomplete] = useState(null);
   const [searchValue, setSearchValue] = useState("");
 
-  const [map, setMap] = useState(null);
-  const onLoadMap = useCallback((mapInstance) => setMap(mapInstance), []);
-  const onUnmountMap = useCallback(() => setMap(null), []);
-
+  // useRef로 마커와 Circle 관리 (상태가 아닌 참조로)
+  const markerRef = useRef(null);
   const circleRef = useRef(null);
-
 
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: API_KEY || "",
@@ -81,38 +76,58 @@ export default function TripPlanPage({ session, token, handleLogout }) {
     }
   }, [groupId, token, navigate]);
 
-  // 마커 업데이트 (AdvancedMarkerElement 사용)
+  // 마커 및 Circle 업데이트
   useEffect(() => {
     if (map && isLoaded && window.google?.maps?.marker?.AdvancedMarkerElement) {
       const currentDay = tripDays[activeDayIndex];
 
       // 기존 마커 제거
-      if (marker) {
-        marker.map = null;
+      if (markerRef.current) {
+        markerRef.current.map = null;
+        markerRef.current = null;
       }
 
-      // 새 마커 생성
+      // 기존 Circle 제거
+      if (circleRef.current) {
+        circleRef.current.setMap(null);
+        circleRef.current = null;
+      }
+
+      // 새 마커 및 Circle 생성
       if (currentDay?.location) {
+        // 마커 생성
         const newMarker = new window.google.maps.marker.AdvancedMarkerElement({
           map: map,
           position: currentDay.location,
           title: `${activeDayIndex + 1}일차`,
         });
-        setMarker(newMarker);
+        markerRef.current = newMarker;
+
+        // Circle 생성
+        const newCircle = new window.google.maps.Circle({
+          map: map,
+          center: currentDay.location,
+          radius: currentDay.radius,
+          strokeColor: "#818cf8",
+          strokeOpacity: 0.8,
+          strokeWeight: 2,
+          fillColor: "#c7d2fe",
+          fillOpacity: 0.35,
+        });
+        circleRef.current = newCircle;
 
         // 지도 중심을 마커 위치로 이동 (부드럽게)
         map.panTo(currentDay.location);
-      } else {
-        setMarker(null);
       }
     }
-  }, [
-    map,
-    isLoaded,
-    activeDayIndex,
-    tripDays[activeDayIndex]?.location,
-    tripDays[activeDayIndex]?.radius,
-  ]);
+  }, [map, isLoaded, activeDayIndex, tripDays[activeDayIndex]?.location]);
+
+  // 반경 변경 시 Circle 크기만 업데이트
+  useEffect(() => {
+    if (circleRef.current && tripDays[activeDayIndex]?.location) {
+      circleRef.current.setRadius(tripDays[activeDayIndex].radius);
+    }
+  }, [tripDays[activeDayIndex]?.radius]);
 
   // 날짜 수 변경 시
   const handleNumDaysChange = (newNumDays) => {
@@ -153,7 +168,10 @@ export default function TripPlanPage({ session, token, handleLogout }) {
 
         // 현재 활성 날짜의 위치 업데이트
         const newTripDays = [...tripDays];
-        newTripDays[activeDayIndex].location = newLocation;
+        newTripDays[activeDayIndex] = {
+          ...newTripDays[activeDayIndex],
+          location: newLocation,
+        };
 
         // 장소 이름을 description에 자동 입력 (사용자가 수정 가능)
         if (!newTripDays[activeDayIndex].description) {
@@ -175,12 +193,14 @@ export default function TripPlanPage({ session, token, handleLogout }) {
     }
   };
 
-  // 지도 클릭 시 (기존 기능 유지)
+  // 지도 클릭 시
   const onMapClick = (e) => {
     const newLocation = { lat: e.latLng.lat(), lng: e.latLng.lng() };
     const newTripDays = [...tripDays];
-    // Create a NEW day object so currentDay's reference changes
-    newTripDays[activeDayIndex] = { ...newTripDays[activeDayIndex], location: newLocation };
+    newTripDays[activeDayIndex] = {
+      ...newTripDays[activeDayIndex],
+      location: newLocation,
+    };
     setTripDays(newTripDays);
   };
 
@@ -188,15 +208,20 @@ export default function TripPlanPage({ session, token, handleLogout }) {
   const handleRadiusChange = (newRadius) => {
     const radius = Math.max(100, parseInt(newRadius, 10));
     const newTripDays = [...tripDays];
-    // Create a NEW day object so currentDay's reference changes
-    newTripDays[activeDayIndex] = { ...newTripDays[activeDayIndex], radius: radius };
+    newTripDays[activeDayIndex] = {
+      ...newTripDays[activeDayIndex],
+      radius: radius,
+    };
     setTripDays(newTripDays);
   };
 
   // 설명 변경 시
   const handleDescriptionChange = (newDescription) => {
     const newTripDays = [...tripDays];
-    newTripDays[activeDayIndex].description = newDescription;
+    newTripDays[activeDayIndex] = {
+      ...newTripDays[activeDayIndex],
+      description: newDescription,
+    };
     setTripDays(newTripDays);
   };
 
@@ -218,9 +243,9 @@ export default function TripPlanPage({ session, token, handleLogout }) {
     const tripPlan = { days: tripDays };
     const result = updateGroup(token, groupId, {
       tripPlan,
-      restaurantsByDay: null, // 초기화
-      restaurants: null, // 초기화
-      lastRecommendation: null, // 초기화
+      restaurantsByDay: null,
+      restaurants: null,
+      lastRecommendation: null,
     });
 
     if (result.success) {
@@ -236,6 +261,20 @@ export default function TripPlanPage({ session, token, handleLogout }) {
     }
   };
 
+  // 컴포넌트 언마운트 시 마커 및 Circle 정리
+  useEffect(() => {
+    return () => {
+      if (markerRef.current) {
+        markerRef.current.map = null;
+        markerRef.current = null;
+      }
+      if (circleRef.current) {
+        circleRef.current.setMap(null);
+        circleRef.current = null;
+      }
+    };
+  }, []);
+
   const currentDay = tripDays[activeDayIndex];
 
   if (!group || !session) return <div>로딩 중...</div>;
@@ -244,7 +283,7 @@ export default function TripPlanPage({ session, token, handleLogout }) {
   if (!API_KEY || API_KEY === "YOUR_API_KEY") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
-        <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
+        <header className="sticky top-0 z-50 p-2 bg-white/80 backdrop-blur-3xl rounded-none shadow-sm">
           <HeaderBar session={session} handleLogout={handleLogout} />
         </header>
         <main className="container mx-auto px-4 py-8">
@@ -292,7 +331,7 @@ export default function TripPlanPage({ session, token, handleLogout }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
       {/* 헤더 */}
-      <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
+      <header className="sticky top-0 z-50 p-2 bg-white/80 backdrop-blur-3xl rounded-none shadow-sm">
         <HeaderBar session={session} handleLogout={handleLogout} />
       </header>
 
@@ -306,7 +345,7 @@ export default function TripPlanPage({ session, token, handleLogout }) {
           </div>
 
           {/* 여행 기간 설정 */}
-          <div className="flex items-center gap-4 mb-6 bg-white p-4 rounded-xl shadow-md border-2 border-indigo-200">
+          <div className="flex items-center gap-4 mb-6 bg-white p-4 rounded-xl shadow-md">
             <label className="font-bold text-lg">여행 기간:</label>
             <Input
               type="number"
@@ -337,7 +376,7 @@ export default function TripPlanPage({ session, token, handleLogout }) {
 
           {/* 지도 및 설정 (현재 활성화된 날짜 기준) */}
           {currentDay && (
-            <div className="bg-white p-6 rounded-xl shadow-lg border-2 border-indigo-200 space-y-6">
+            <div className="bg-white p-6 rounded-xl shadow-lg space-y-6">
               <h2 className="text-xl font-bold text-indigo-700">
                 {activeDayIndex + 1}일차 계획
               </h2>
@@ -363,7 +402,7 @@ export default function TripPlanPage({ session, token, handleLogout }) {
                       onLoad={onLoadAutocomplete}
                       onPlaceChanged={onPlaceChanged}
                       options={{
-                        types: ["(cities)"], // 도시만 검색
+                        types: ["(cities)"],
                         fields: ["geometry", "formatted_address", "name"],
                       }}
                     >
@@ -374,7 +413,7 @@ export default function TripPlanPage({ session, token, handleLogout }) {
                           placeholder="도시명을 검색하세요 (예: 서울, 부산, 제주)"
                           value={searchValue}
                           onChange={(e) => setSearchValue(e.target.value)}
-                          className="w-full pl-10 pr-4 py-3 border-2 border-indigo-300 rounded-lg focus:border-indigo-500 focus:outline-none text-base"
+                          className="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-lg focus:outline-none text-base shadow-md"
                         />
                       </div>
                     </Autocomplete>
@@ -392,22 +431,10 @@ export default function TripPlanPage({ session, token, handleLogout }) {
                     onClick={onMapClick}
                     onLoad={(map) => setMap(map)}
                     options={{
-                      mapId: "DEMO_MAP_ID", // AdvancedMarkerElement 사용을 위해 필요
+                      mapId: "DEMO_MAP_ID",
                     }}
                   >
-                    {currentDay.location && (
-                      <Circle
-                        center={currentDay.location}
-                        radius={currentDay.radius}
-                        options={{
-                          strokeColor: "#818cf8",
-                          strokeOpacity: 0.8,
-                          strokeWeight: 2,
-                          fillColor: "#c7d2fe",
-                          fillOpacity: 0.35,
-                        }}
-                      />
-                    )}
+                    {/* Circle은 useEffect에서 직접 생성 */}
                   </GoogleMap>
                 </div>
               )}

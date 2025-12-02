@@ -20,10 +20,10 @@ export default function Button({
   // 스타일 변형에 따른 클래스
   const variantClasses = {
     primary:
-      "bg-indigo-600 hover:bg-indigo-700 text-white border-2 border-indigo-700",
+      "bg-indigo-600 hover:bg-indigo-700 text-white border-2 border-indigo-700 shadow-md",
     secondary:
-      "bg-white hover:bg-gray-50 text-indigo-700 border-2 border-indigo-300",
-    danger: "bg-red-600 hover:bg-red-700 text-white border-2 border-red-700",
+      "bg-gray-100 hover:bg-gray-200 text-gray-700 shadow-md",
+    danger: "bg-red-600 hover:bg-red-700 text-white shadow-md",
   };
 
   // 크기에 따른 클래스

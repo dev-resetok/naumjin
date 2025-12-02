@@ -62,7 +62,7 @@ export default function MyGroupsPage({ session, token, handleLogout }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
-      <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
+      <header className="sticky top-0 z-50 p-2 bg-white/80 backdrop-blur-3xl rounded-none shadow-sm">
         <HeaderBar session={session} handleLogout={handleLogout} />
       </header>
 
@@ -72,13 +72,16 @@ export default function MyGroupsPage({ session, token, handleLogout }) {
             <h1 className="text-3xl font-bold text-gray-800 mb-2">나의 그룹</h1>
             <p className="text-gray-600">내가 참여하고 있는 모든 그룹 목록입니다.</p>
           </div>
-          <Button variant="primary" onClick={() => navigate(routes.groupCreate)}>
-            <Plus className="w-5 h-5 mr-2" />새 그룹 만들기
-          </Button>
+          <div className="flex items-center gap-4">
+            <Button variant="secondary" onClick={() => navigate(routes.mypage)}>마이페이지로 돌아가기</Button>
+            <Button variant="primary" onClick={() => navigate(routes.groupCreate)}>
+              <Plus className="w-5 h-5 mr-2" />새 그룹 만들기
+            </Button>
+          </div>
         </div>
 
         {groups.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
             {groups.map((group) => (
               <GroupCard
                 key={group.id}
@@ -107,10 +110,6 @@ export default function MyGroupsPage({ session, token, handleLogout }) {
             </div>
           </div>
         )}
-        
-        <div className="mt-8 flex justify-center">
-            <Button variant="secondary" onClick={() => navigate(routes.mypage)}>마이페이지로 돌아가기</Button>
-        </div>
       </main>
     </div>
   );
