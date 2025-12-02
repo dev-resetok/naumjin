@@ -345,7 +345,7 @@ export default function TripPlanPage({ session, token, handleLogout }) {
           </div>
 
           {/* 여행 기간 설정 */}
-          <div className="flex items-center gap-4 mb-6 bg-white p-4 rounded-xl shadow-md border-2 border-indigo-200">
+          <div className="flex items-center gap-4 mb-6 bg-white p-4 rounded-xl shadow-md">
             <label className="font-bold text-lg">여행 기간:</label>
             <Input
               type="number"
@@ -376,7 +376,7 @@ export default function TripPlanPage({ session, token, handleLogout }) {
 
           {/* 지도 및 설정 (현재 활성화된 날짜 기준) */}
           {currentDay && (
-            <div className="bg-white p-6 rounded-xl shadow-lg border-2 border-indigo-200 space-y-6">
+            <div className="bg-white p-6 rounded-xl shadow-lg space-y-6">
               <h2 className="text-xl font-bold text-indigo-700">
                 {activeDayIndex + 1}일차 계획
               </h2>
@@ -413,7 +413,7 @@ export default function TripPlanPage({ session, token, handleLogout }) {
                           placeholder="도시명을 검색하세요 (예: 서울, 부산, 제주)"
                           value={searchValue}
                           onChange={(e) => setSearchValue(e.target.value)}
-                          className="w-full pl-10 pr-4 py-3 border-2 border-indigo-300 rounded-lg focus:border-indigo-500 focus:outline-none text-base"
+                          className="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-lg focus:outline-none text-base shadow-md"
                         />
                       </div>
                     </Autocomplete>

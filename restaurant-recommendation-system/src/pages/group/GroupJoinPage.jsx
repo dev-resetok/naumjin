@@ -46,14 +46,14 @@ export default function GroupJoinPage({ session, token, handleLogout }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
       {/* 헤더 */}
-      <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
-        <HeaderBar session={session} handleLogout={handleLogout} />
-      </header>
+      <header className="sticky top-0 z-50 p-2 bg-white/80 backdrop-blur-3xl rounded-none shadow-sm">
+              <HeaderBar session={session} handleLogout={handleLogout} />
+            </header>
 
       {/* 메인 콘텐츠 */}
       <main className="container mx-auto px-6 py-16 flex items-center justify-center">
         <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl p-8 border-2 border-indigo-200 shadow-lg">
+          <div className="bg-white rounded-2xl p-8 shadow-xl">
             {/* 타이틀 */}
             <div className="text-center mb-8">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-full mb-4">
@@ -85,7 +85,7 @@ export default function GroupJoinPage({ session, token, handleLogout }) {
                 required
               />
 
-              <div className="bg-indigo-50 rounded-lg p-4 border-2 border-indigo-200">
+              <div className="bg-indigo-50 rounded-lg shadow-lg shadow-indigo-100 p-4">
                 <p className="text-sm text-indigo-800">
                   💡 <strong>그룹 코드는 어디서 받나요?</strong>
                   <br />

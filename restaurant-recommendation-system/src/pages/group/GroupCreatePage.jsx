@@ -65,7 +65,7 @@ export default function GroupCreatePage({ session, token, handleLogout }) {
         <div className="w-full max-w-2xl">
           {!createdGroup ? (
             /* 그룹 생성 폼 */
-            <div className="bg-white rounded-2xl p-8 border-2 border-indigo-200 shadow-lg">
+            <div className="bg-white rounded-2xl p-8 shadow-lg">
               <div className="text-center mb-8">
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-full mb-4">
                   <Users className="w-8 h-8 text-indigo-600" />
@@ -86,7 +86,7 @@ export default function GroupCreatePage({ session, token, handleLogout }) {
                   required
                 />
 
-                <div className="bg-indigo-50 rounded-lg p-4 border-2 border-indigo-200">
+                <div className="bg-indigo-50 rounded-lg p-4">
                   <p className="text-sm text-indigo-800">
                     💡 <strong>그룹 생성 후</strong> 6자리 고유 코드가 발급됩니다.
                     <br />
@@ -106,7 +106,7 @@ export default function GroupCreatePage({ session, token, handleLogout }) {
             </div>
           ) : (
             /* 그룹 생성 완료 */
-            <div className="bg-white rounded-2xl p-8 border-2 border-green-200 shadow-lg">
+            <div className="bg-white rounded-2xl p-8 shadow-lg">
               <div className="text-center mb-8">
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
                   <Check className="w-8 h-8 text-green-600" />
@@ -121,7 +121,7 @@ export default function GroupCreatePage({ session, token, handleLogout }) {
 
               <div className="space-y-6">
                 {/* 그룹 정보 */}
-                <div className="bg-indigo-50 rounded-lg p-6 border-2 border-indigo-200">
+                <div className="bg-indigo-50 rounded-lg p-6 shadow-sm">
                   <div className="text-center mb-4">
                     <p className="text-sm text-gray-600 mb-2">그룹 이름</p>
                     <p className="text-2xl font-bold text-indigo-800">
@@ -159,7 +159,7 @@ export default function GroupCreatePage({ session, token, handleLogout }) {
                 </div>
 
                 {/* 안내 메시지 */}
-                <div className="bg-yellow-50 rounded-lg p-4 border-2 border-yellow-200">
+                <div className="bg-yellow-50 rounded-lg p-4 shadow-sm">
                   <p className="text-sm text-yellow-800">
                     📌 <strong>다음 단계:</strong>
                     <br />

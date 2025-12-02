@@ -224,7 +224,7 @@ export default function MainPage({ session, handleLogout }) {
               함께하는 여행, 함께 찾는 맛집
             </h1>
             <p className="text-xl text-gray-600 mb-10">
-              그룹 멤버 모두가 만족하는 식당을 AI가 추천해드립니다
+              그룹 멤버 모두가 만족하는 식당을 추천해드립니다
             </p>
 
             {/* 로그인 여부에 따른 버튼 */}

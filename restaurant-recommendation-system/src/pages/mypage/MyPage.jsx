@@ -99,78 +99,80 @@ export default function MyPage({ session, token, handleLogout }) {
 
       <main className="container mx-auto px-6 py-8">
         <div className="max-w-5xl mx-auto">
+          {/* 전체 너비 섹션 - 프로필 헤더 */}
+          <div className="bg-white rounded-2xl p-8 shadow-lg mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                <div
+                  className={`w-24 h-24 ${avatarColorClass} text-white rounded-full flex items-center justify-center text-4xl font-bold`}
+                >
+                  {user.nickname[0]}
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                    {user.nickname}
+                  </h1>
+                  <p className="text-gray-600">@{user.id}</p>
+                  <p className="text-sm text-indigo-600 mt-1">
+                    PID: {user.pid}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={() => navigate(routes.mypageEdit)}
+                  className="flex items-center justify-center gap-2"
+                >
+                  <Settings className="w-5 h-5" />
+                  정보 수정
+                </Button>                  
+                <Button
+                  variant="danger"
+                  size="md"
+                  onClick={onLogoutClick}
+                  className="flex items-center justify-center gap-2"
+                >
+                  <LogOut className="w-5 h-5" />
+                  로그아웃
+                </Button>
+              </div>
+            </div>
+          </div>
+
           {/* 2단 레이아웃 섹션 */}
           <div className="lg:grid lg:grid-cols-3 lg:gap-6 mb-6">
             {/* 왼쪽 컬럼 */}
-            <div className="lg:col-span-1 space-y-6">
-              {/* 프로필 헤더 */}
-              <div className="bg-white rounded-2xl p-8 shadow-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-6">
-                    <div
-                      className={`w-24 h-24 ${avatarColorClass} text-white rounded-full flex items-center justify-center text-4xl font-bold`}
-                    >
-                      {user.nickname[0]}
-                    </div>
-                    <div>
-                      <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                        {user.nickname}
-                      </h1>
-                      <p className="text-gray-600">@{user.id}</p>
-                      <p className="text-sm text-indigo-600 mt-1">
-                        PID: {user.pid}
-                      </p>
-                    </div>
-                  </div>
+            <div className="lg:col-span-1 flex flex-col">
+              {/* 통계 카드 (래퍼 div) */}
+              <div className="bg-white rounded-2xl p-8 shadow-lg flex-grow flex flex-col justify-between h-full">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-1 gap-4">
+                  <InfoCard
+                    title="참여 그룹"
+                    value={`${userGroups.length}개`}
+                    icon={<Users />}
+                    color="indigo"
+                  />
+                  <InfoCard
+                    title="선호도 설정"
+                    value={user.preference ? "완료" : "미설정"}
+                    icon={<Heart />}
+                    color={user.preference ? "green" : "orange"}
+                  />
+                  <InfoCard
+                    title="가입일"
+                    value={new Date(user.createdAt).toLocaleDateString()}
+                    icon={<User />}
+                    color="purple"
+                  />
                 </div>
-                <div className="mt-6 flex items-center gap-2">
-                  <Button
-                    variant="secondary"
-                    size="md"
-                    onClick={() => navigate(routes.mypageEdit)}
-                    className="flex-1 flex items-center justify-center gap-2"
-                  >
-                    <Settings className="w-5 h-5" />
-                    정보 수정
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="md"
-                    onClick={onLogoutClick}
-                    className="flex-1 flex items-center justify-center gap-2"
-                  >
-                    <LogOut className="w-5 h-5" />
-                    로그아웃
-                  </Button>
-                </div>
-              </div>
-
-              {/* 통계 카드 */}
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-1 gap-4">
-                <InfoCard
-                  title="참여 그룹"
-                  value={`${userGroups.length}개`}
-                  icon={<Users />}
-                  color="indigo"
-                />
-                <InfoCard
-                  title="선호도 설정"
-                  value={user.preference ? "완료" : "미설정"}
-                  icon={<Heart />}
-                  color={user.preference ? "green" : "orange"}
-                />
-                <InfoCard
-                  title="가입일"
-                  value={new Date(user.createdAt).toLocaleDateString()}
-                  icon={<User />}
-                  color="purple"
-                />
               </div>
             </div>
 
-            {/* 오른쪽 컬럼 - 선호도 정보 (맛/재료 제거) */}
+            {/* 오른쪽 컬럼 - 선호도 정보 */}
             <div className="lg:col-span-2 mt-6 lg:mt-0">
-              <div className="bg-white rounded-2xl p-8 shadow-lg">
+              <div className="bg-white rounded-2xl p-8 shadow-lg h-full flex flex-col">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                     <Heart className="w-7 h-7 text-indigo-600" />
