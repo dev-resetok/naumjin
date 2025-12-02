@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import HeaderBar from "@common/bar/HeaderBar";
 import Button from "@common/button/Button";
 import { Input } from "@components/common/Input";
+import { useToast } from "@components/common/Toast";
 import routes from "@utils/constants/routes";
 import {
   getGroupById,
@@ -26,6 +27,7 @@ import {
 export default function GroupManagePage({ session, token, handleLogout }) {
   const navigate = useNavigate();
   const { groupId } = useParams();
+  const toast = useToast();
 
   const [group, setGroup] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -42,7 +44,7 @@ export default function GroupManagePage({ session, token, handleLogout }) {
         setPreventReset(result.group.preventReset || false);
         setLockJoin(result.group.lockJoin || false);
       } else {
-        alert(result.message);
+        toast.error(result.message);
         navigate(routes.home);
       }
       setLoading(false);
@@ -55,15 +57,15 @@ export default function GroupManagePage({ session, token, handleLogout }) {
   const handleUpdateName = (e) => {
     e.preventDefault();
     if (!groupName.trim()) {
-      alert("그룹 이름을 입력해주세요.");
+      toast.warning("그룹 이름을 입력해주세요.");
       return;
     }
     const result = updateGroup(token, groupId, { name: groupName.trim() });
     if (result.success) {
-      alert("그룹 이름이 변경되었습니다.");
+      toast.success("그룹 이름이 변경되었습니다! ✨");
       fetchGroup(); // 데이터 새로고침
     } else {
-      alert(result.message);
+      toast.error(result.message);
     }
   };
 
@@ -73,11 +75,11 @@ export default function GroupManagePage({ session, token, handleLogout }) {
     const result = updateGroup(token, groupId, { preventReset: newValue });
     if (result.success) {
       setPreventReset(newValue);
-      alert(
+      toast.info(
         `초기화 방지 기능이 ${newValue ? "활성화" : "비활성화"}되었습니다.`
       );
     } else {
-      alert(result.message);
+      toast.error(result.message);
     }
   };
 
@@ -87,9 +89,11 @@ export default function GroupManagePage({ session, token, handleLogout }) {
     const result = updateGroup(token, groupId, { lockJoin: newValue });
     if (result.success) {
       setLockJoin(newValue);
-      alert(`그룹 참여 제한이 ${newValue ? "활성화" : "비활성화"}되었습니다.`);
+      toast.info(
+        `그룹 참여 제한이 ${newValue ? "활성화" : "비활성화"}되었습니다.`
+      );
     } else {
-      alert(result.message);
+      toast.error(result.message);
     }
   };
 
@@ -144,7 +148,7 @@ export default function GroupManagePage({ session, token, handleLogout }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
-      <header className="sticky top-0 z-50 p-2 bg-white/80 backdrop-blur-3xl rounded-none shadow-sm">
+      <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
         <HeaderBar session={session} handleLogout={handleLogout} />
       </header>
 
@@ -286,7 +290,7 @@ export default function GroupManagePage({ session, token, handleLogout }) {
 
           {/* 그룹 삭제 */}
           <div className="bg-red-50 rounded-2xl p-6 border-2 border-red-200 shadow-lg">
-            <h2 className="text-xl font-bold text-red-800 mb-2">주의!</h2>
+            <h2 className="text-xl font-bold text-red-800 mb-2">위험 구역</h2>
             <p className="text-gray-700 mb-4">
               이 작업은 되돌릴 수 없습니다. 신중하게 결정해주세요.
             </p>

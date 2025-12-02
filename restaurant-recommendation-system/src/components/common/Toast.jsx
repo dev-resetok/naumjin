@@ -50,8 +50,10 @@ function Toast({ id, message, type = "info", onClose }) {
         ${style.bg} ${style.border} ${style.text}
         border-2 rounded-xl p-4 shadow-lg
         flex items-start gap-3 min-w-[320px] max-w-md
-        animate-slideIn
       `}
+      style={{
+        animation: "slideInRight 0.3s ease-out",
+      }}
     >
       <Icon className={`w-6 h-6 flex-shrink-0 ${style.iconColor}`} />
       <p className="flex-1 font-medium">{message}</p>
@@ -72,7 +74,7 @@ export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
 
   const showToast = useCallback((message, type = "info", duration = 3000) => {
-    const id = Date.now();
+    const id = Date.now() + Math.random();
     setToasts((prev) => [...prev, { id, message, type }]);
 
     // 자동 제거
@@ -96,8 +98,21 @@ export function ToastProvider({ children }) {
     <ToastContext.Provider value={toast}>
       {children}
 
-      {/* Toast Container */}
-      <div className="fixed top-4 right-4 z-50 flex flex-col gap-3">
+      {/* Toast Container with Animation */}
+      <style>{`
+        @keyframes slideInRight {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+      `}</style>
+
+      <div className="fixed top-20 right-4 z-[9999] flex flex-col gap-3">
         {toasts.map((toast) => (
           <Toast
             key={toast.id}
