@@ -778,7 +778,14 @@ export default function FoodResultPage({ session, token, handleLogout }) {
             return (
               <div
                 key={restaurant.id}
-                className={`bg-white rounded-2xl overflow-hidden border-2 shadow-lg transition-all transform ${
+                onClick={() =>
+                  handleSelectRestaurant(
+                    activeDayIndex,
+                    activeMealType,
+                    restaurant
+                  )
+                }
+                className={`bg-white rounded-2xl overflow-hidden border-2 shadow-lg transition-all transform cursor-pointer ${
                   isSelectedInCurrentMeal
                     ? `${activeMealInfo.selectionBorder} ring-4 ${activeMealInfo.selectionRing}`
                     : "border-gray-200 hover:shadow-2xl hover:scale-[1.02]"
@@ -786,14 +793,7 @@ export default function FoodResultPage({ session, token, handleLogout }) {
               >
                 {/* 이미지 */}
                 <div
-                  className="relative h-48 cursor-pointer overflow-hidden"
-                  onClick={() =>
-                    handleSelectRestaurant(
-                      activeDayIndex,
-                      activeMealType,
-                      restaurant
-                    )
-                  }
+                  className="relative h-48 overflow-hidden"
                 >
                   {restaurant.images[0] ? (
                     <>
