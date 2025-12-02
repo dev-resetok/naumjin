@@ -6,15 +6,15 @@ import { Star, MapPin, Users, Calendar, Crown, Check } from "lucide-react";
  */
 export function InfoCard({ title, value, icon, color = "indigo" }) {
   const colorClasses = {
-    indigo: "bg-indigo-50 border-indigo-200 text-indigo-700",
-    green: "bg-green-50 border-green-200 text-green-700",
-    purple: "bg-purple-50 border-purple-200 text-purple-700",
-    orange: "bg-orange-50 border-orange-200 text-orange-700",
-    blue: "bg-blue-50 border-blue-200 text-blue-700",
+    indigo: "bg-indigo-50 text-indigo-700",
+    green: "bg-green-50 text-green-700",
+    purple: "bg-purple-50 text-purple-700",
+    orange: "bg-orange-50 text-orange-700",
+    blue: "bg-blue-50 text-blue-700",
   };
 
   return (
-    <div className={`rounded-xl p-4 border-2 ${colorClasses[color]}`}>
+    <div className={`rounded-xl p-4 shadow-md ${colorClasses[color]}`}>
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 flex items-center justify-center">{icon}</div>
         <div>
@@ -126,11 +126,13 @@ export function RestaurantCard({
  */
 export function GroupCard({ group, session, onClick, onLeave, onDelete }) {
   const isCreator = group.creatorId === session.user.id;
-  const isMember = group.members.some((m) => m.id === session.user.id);
+  const isMember = group.members.some((m) =>
+    typeof m === "string" ? m === session.user.id : m.id === session.user.id
+  );
 
   return (
     <div
-      className="bg-white rounded-xl p-5 border-2 border-indigo-200 shadow-md hover:shadow-lg transition-all cursor-pointer"
+      className="bg-white rounded-xl p-5 shadow-md hover:shadow-lg transition-all cursor-pointer"
       onClick={onClick}
     >
       <div className="flex justify-between items-start mb-3">
@@ -169,7 +171,7 @@ export function GroupCard({ group, session, onClick, onLeave, onDelete }) {
       </div>
 
       {isMember && (
-        <div className="flex gap-2 pt-3 border-t border-gray-200">
+        <div className="flex gap-2 pt-3">
           {isCreator ? (
             <button
               onClick={(e) => {

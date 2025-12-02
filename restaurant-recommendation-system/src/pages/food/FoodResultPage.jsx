@@ -29,8 +29,8 @@ const adaptPlaceToRestaurant = (place) => {
       3: "비싼 (30,000~60,000원)",
       4: "고급 (60,000원+)",
     };
-    return priceLevel !== null && priceLevel !== undefined 
-      ? labels[priceLevel] 
+    return priceLevel !== null && priceLevel !== undefined
+      ? labels[priceLevel]
       : "가격 정보 없음";
   };
 
@@ -225,16 +225,20 @@ export default function FoodResultPage({ session, token, handleLogout }) {
   }
 
   const currentDayRestaurants = restaurantsByDay[activeDayIndex] || [];
-  
+
   // 필터링 (별점 + 가격)
   let filteredRestaurants = currentDayRestaurants;
-  
+
   if (filterRating > 0) {
-    filteredRestaurants = filteredRestaurants.filter((r) => r.rating >= filterRating);
+    filteredRestaurants = filteredRestaurants.filter(
+      (r) => r.rating >= filterRating
+    );
   }
-  
+
   if (filterPrice > 0) {
-    filteredRestaurants = filteredRestaurants.filter((r) => r.priceLevel === filterPrice);
+    filteredRestaurants = filteredRestaurants.filter(
+      (r) => r.priceLevel === filterPrice
+    );
   }
 
   const currentMealKey = `${activeDayIndex}_${activeMealType}`;
@@ -242,9 +246,20 @@ export default function FoodResultPage({ session, token, handleLogout }) {
 
   const totalDays = Object.keys(restaurantsByDay).length;
 
+  // 선택된 일차 계산 (최소 1개 이상 선택된 일차만 카운트)
+  const selectedDaysSet = new Set();
+  Object.keys(selectedRestaurants).forEach((key) => {
+    const dayIndex = key.split("_")[0];
+    const restaurants = selectedRestaurants[key];
+    if (Array.isArray(restaurants) && restaurants.length > 0) {
+      selectedDaysSet.add(dayIndex);
+    }
+  });
+  const selectedDaysCount = selectedDaysSet.size;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
-      <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
+      <header className="sticky top-0 z-50 p-2 bg-white/80 backdrop-blur-3xl rounded-none shadow-sm">
         <HeaderBar session={session} handleLogout={handleLogout} />
       </header>
 
@@ -260,7 +275,7 @@ export default function FoodResultPage({ session, token, handleLogout }) {
             </p>
           </div>
           <Button variant="primary" size="lg" onClick={handleComplete}>
-            선택 완료
+            선택 완료 ({selectedDaysCount}/{totalDays}일)
             <ChevronRight className="w-5 h-5 ml-2" />
           </Button>
         </div>
@@ -282,11 +297,15 @@ export default function FoodResultPage({ session, token, handleLogout }) {
                 const dinnerCount = (selectedRestaurants[`${idx}_dinner`] || [])
                   .length;
                 const totalSelected = breakfastCount + lunchCount + dinnerCount;
+                const hasSelection = totalSelected > 0;
 
                 return (
                   <button
                     key={dayIdx}
-                    onClick={() => setActiveDayIndex(idx)}
+                    onClick={() => {
+                      setActiveDayIndex(idx);
+                      setActiveMealType("breakfast"); // 일차 변경 시 자동으로 아침으로 리셋
+                    }}
                     className={`px-6 py-3 font-bold transition-all whitespace-nowrap flex items-center gap-2 rounded-lg ${
                       activeDayIndex === idx
                         ? "bg-indigo-600 text-white shadow-lg"
@@ -295,7 +314,7 @@ export default function FoodResultPage({ session, token, handleLogout }) {
                   >
                     <Calendar className="w-5 h-5" />
                     {dayLabel}일차
-                    {totalSelected > 0 && (
+                    {hasSelection && (
                       <span
                         className={`text-xs px-2 py-0.5 rounded-full ${
                           activeDayIndex === idx
@@ -404,6 +423,9 @@ export default function FoodResultPage({ session, token, handleLogout }) {
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-indigo-600" />
                 <span className="font-semibold text-gray-800 text-sm">최소 별점:</span>
+                <span className="font-semibold text-gray-800 text-sm">
+                  최소 별점:
+                </span>
                 <div className="flex gap-2">
                   {[0, 3, 4, 4.5].map((rating) => (
                     <button
@@ -422,80 +444,41 @@ export default function FoodResultPage({ session, token, handleLogout }) {
               </div>
             </div>
 
-            {/* 가격대 필터 - 슬라이더 */}
-            <div className="pb-2">
+            {/* 가격대 필터 */}
+            <div>
               <div className="flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-green-600" />
-                <span className="font-semibold text-gray-800 text-sm">가격대 필터:</span>
-                
-                {/* 슬라이더 - 옆에 배치 */}
-                <div className="flex-1 max-w-md">
-                  <div className="relative pt-2 pb-6">
-                    {/* 배경 트랙 */}
-                    <div className="absolute top-1/2 left-0 right-0 h-1.5 bg-gray-200 rounded-full -translate-y-1/2" />
-                    
-                    {/* 하이라이트 - 전체일 때는 표시 안 함 */}
-                    {filterPrice > 0 && (
-                      <div 
-                        className={`
-                          absolute top-1/2 h-1.5 rounded-full -translate-y-1/2 transition-all
-                          ${filterPrice === 1 ? "bg-green-500" : ""}
-                          ${filterPrice === 2 ? "bg-blue-500" : ""}
-                          ${filterPrice === 3 ? "bg-orange-500" : ""}
-                          ${filterPrice === 4 ? "bg-purple-500" : ""}
-                        `}
-                        style={{
-                          left: '0%',
-                          right: filterPrice === 1 ? '75%' : 
-                                 filterPrice === 2 ? '50%' : 
-                                 filterPrice === 3 ? '25%' : '0%',
-                        }}
-                      />
-                    )}
-
-                    {/* 슬라이더 */}
-                    <input
-                      type="range"
-                      min="0"
-                      max="4"
-                      step="1"
-                      value={filterPrice}
-                      onChange={(e) => setFilterPrice(parseInt(e.target.value))}
-                      className="absolute top-1/2 left-0 right-0 w-full -translate-y-1/2 appearance-none bg-transparent pointer-events-auto cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-indigo-600 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md hover:[&::-webkit-slider-thumb]:scale-110 [&::-webkit-slider-thumb]:transition-transform [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-indigo-600 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-md hover:[&::-moz-range-thumb]:scale-110 [&::-moz-range-thumb]:transition-transform"
-                      style={{ zIndex: 5 }}
-                    />
-
-                    {/* 눈금 표시 - 더 위로 (슬라이더와 하단 중간) */}
-                    <div className="absolute bottom-2 left-0 right-0">
-                      <div className="relative flex">
-                        <div className="absolute left-0">
-                          <span className={`text-xs font-medium ${filterPrice === 0 ? 'text-indigo-700' : 'text-gray-500'}`}>
-                            전체
-                          </span>
-                        </div>
-                        <div className="absolute left-1/4 -translate-x-1/2">
-                          <span className={`text-sm font-bold ${filterPrice === 1 ? 'text-green-700' : 'text-gray-600'}`}>
-                            $
-                          </span>
-                        </div>
-                        <div className="absolute left-1/2 -translate-x-1/2">
-                          <span className={`text-sm font-bold ${filterPrice === 2 ? 'text-blue-700' : 'text-gray-600'}`}>
-                            $$
-                          </span>
-                        </div>
-                        <div className="absolute left-3/4 -translate-x-1/2">
-                          <span className={`text-sm font-bold ${filterPrice === 3 ? 'text-orange-700' : 'text-gray-600'}`}>
-                            $$$
-                          </span>
-                        </div>
-                        <div className="absolute right-0">
-                          <span className={`text-sm font-bold ${filterPrice === 4 ? 'text-purple-700' : 'text-gray-600'}`}>
-                            $$$$
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                <span className="font-semibold text-gray-800 text-sm">
+                  가격대:
+                </span>
+                <div className="flex gap-2">
+                  {[
+                    { value: 0, label: "전체" },
+                    { value: 1, label: "$" },
+                    { value: 2, label: "$$" },
+                    { value: 3, label: "$$$" },
+                    { value: 4, label: "$$$$" },
+                  ].map((price) => (
+                    <button
+                      key={price.value}
+                      onClick={() => setFilterPrice(price.value)}
+                      className={`px-3 py-1.5 rounded-lg border-2 transition-all text-sm font-bold ${
+                        filterPrice === price.value
+                          ? price.value === 0
+                            ? "border-indigo-600 bg-indigo-50 text-indigo-600"
+                            : price.value === 1
+                            ? "border-green-600 bg-green-50 text-green-600"
+                            : price.value === 2
+                            ? "border-blue-600 bg-blue-50 text-blue-600"
+                            : price.value === 3
+                            ? "border-orange-600 bg-orange-50 text-orange-600"
+                            : "border-purple-600 bg-purple-50 text-purple-600"
+                          : "border-gray-300 text-gray-700 hover:border-indigo-400"
+                      }`}
+                    >
+                      {price.label}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -595,24 +578,6 @@ export default function FoodResultPage({ session, token, handleLogout }) {
                       </span>
                     )}
                   </div>
-
-                  {/* 별점 & 가격 - 하단 */}
-                  <div className="absolute bottom-2 left-2 right-2 flex justify-between">
-                    <div className="bg-black/70 text-white px-3 py-1 rounded-full flex items-center gap-1 shadow-lg">
-                      <Star className="w-4 h-4 text-yellow-400" />
-                      <span className="font-bold">
-                        {restaurant.rating || "N/A"}
-                      </span>
-                    </div>
-                    {restaurant.priceLevel !== null && (
-                      <div className="bg-black/70 text-white px-3 py-1 rounded-full flex items-center gap-1 shadow-lg">
-                        <DollarSign className="w-4 h-4" />
-                        <span className="font-bold text-xs">
-                          {"$".repeat(restaurant.priceLevel || 1)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
                 </div>
 
                 {/* 정보 */}
@@ -620,6 +585,33 @@ export default function FoodResultPage({ session, token, handleLogout }) {
                   <h3 className="text-lg font-bold text-gray-800 truncate mb-2">
                     {restaurant.name}
                   </h3>
+
+                  {/* 별점 & 가격 정보 */}
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="flex items-center gap-1">
+                      <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                      <span className="font-bold text-gray-800">
+                        {restaurant.rating || "N/A"}
+                      </span>
+                      {restaurant.user_ratings_total && (
+                        <span className="text-xs text-gray-500">
+                          ({restaurant.user_ratings_total})
+                        </span>
+                      )}
+                    </div>
+                    {restaurant.priceLevel !== null &&
+                      restaurant.priceLevel !== undefined && (
+                        <>
+                          <span className="text-gray-300">•</span>
+                          <div className="flex items-center gap-1">
+                            <DollarSign className="w-4 h-4 text-green-600" />
+                            <span className="font-bold text-green-600 text-sm">
+                              {"$".repeat(restaurant.priceLevel)}
+                            </span>
+                          </div>
+                        </>
+                      )}
+                  </div>
 
                   <p className="text-sm text-gray-600 flex items-start gap-2 mb-3">
                     <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />

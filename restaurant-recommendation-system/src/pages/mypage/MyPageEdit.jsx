@@ -8,6 +8,18 @@ import routes from "@utils/constants/routes";
 import { updateUser } from "@utils/helpers/storage";
 import { UserCog } from "lucide-react";
 
+// 사용 가능한 아바타 색상 정의
+const COLOR_MAP = {
+  indigo: { bg: "bg-indigo-600", ring: "ring-indigo-500" },
+  red: { bg: "bg-red-500", ring: "ring-red-500" },
+  green: { bg: "bg-green-500", ring: "ring-green-500" },
+  blue: { bg: "bg-blue-500", ring: "ring-blue-500" },
+  yellow: { bg: "bg-yellow-500", ring: "ring-yellow-500" },
+  purple: { bg: "bg-purple-600", ring: "ring-purple-500" },
+  pink: { bg: "bg-pink-500", ring: "ring-pink-500" },
+};
+const AVATAR_COLORS = Object.keys(COLOR_MAP);
+
 /**
  * 내 정보 수정 페이지
  */
@@ -26,6 +38,9 @@ export default function MyPageEdit({
   }
 
   const [nickname, setNickname] = useState(session.user.nickname);
+  const [avatarColor, setAvatarColor] = useState(
+    session.user.avatarColor || "indigo"
+  );
   const [error, setError] = useState("");
 
   const handleSave = (e) => {
@@ -37,12 +52,20 @@ export default function MyPageEdit({
       return;
     }
 
-    if (nickname.trim() === session.user.nickname) {
+    // ✅ 색상 변경도 확인
+    if (
+      nickname.trim() === session.user.nickname &&
+      avatarColor === (session.user.avatarColor || "indigo")
+    ) {
       setError("변경된 내용이 없습니다.");
       return;
     }
 
-    const result = updateUser(token, { nickname: nickname.trim() });
+    const updates = {
+      nickname: nickname.trim(),
+      avatarColor: avatarColor,
+    };
+    const result = updateUser(token, updates);
 
     if (result.success) {
       toast.success("정보가 수정되었습니다! ✅");
@@ -63,7 +86,7 @@ export default function MyPageEdit({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
-      <header className="p-5 bg-indigo-100 border-b-3 border-indigo-300 rounded-b-2xl shadow-sm">
+      <header className="sticky top-0 z-50 p-2 bg-white/80 backdrop-blur-3xl rounded-none shadow-sm">
         <HeaderBar session={session} handleLogout={handleLogout} />
       </header>
 
@@ -84,7 +107,7 @@ export default function MyPageEdit({
               </div>
             )}
 
-            <form onSubmit={handleSave} className="space-y-4">
+            <form onSubmit={handleSave} className="space-y-6">
               <Input
                 label="닉네임"
                 type="text"
@@ -94,7 +117,31 @@ export default function MyPageEdit({
                 required
               />
 
-              <div className="flex gap-3 mt-6">
+              {/* 색상 선택 UI */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  프로필 색상
+                </label>
+                <div className="flex flex-wrap gap-3">
+                  {AVATAR_COLORS.map((color) => (
+                    <button
+                      type="button"
+                      key={color}
+                      onClick={() => setAvatarColor(color)}
+                      className={`w-8 h-8 rounded-full ${
+                        COLOR_MAP[color].bg
+                      } transition-transform transform hover:scale-110 ${
+                        avatarColor === color
+                          ? `ring-2 ring-offset-2 ${COLOR_MAP[color].ring}`
+                          : ""
+                      }`}
+                      aria-label={`${color} 색상 선택`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
                 <Button
                   variant="secondary"
                   size="lg"

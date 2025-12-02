@@ -37,7 +37,6 @@ export default function FoodPreferencePage({
   const [dislikedCategories, setDislikedCategories] = useState([]);
   const [dislikedKeywords, setDislikedKeywords] = useState([]);
   const [likedKeywords, setLikedKeywords] = useState([]);
-  const [budgetRange, setBudgetRange] = useState([10000, 50000]);
 
   // 그룹 정보(선택적) 및 기존 선호도 로드
   useEffect(() => {
@@ -61,7 +60,6 @@ export default function FoodPreferencePage({
         setDislikedCategories(pref.dislikedCategories || []);
         setDislikedKeywords(pref.dislikedKeywords || []);
         setLikedKeywords(pref.likedKeywords || []);
-        setBudgetRange(pref.budgetRange || [10000, 50000]);
       }
       setIsLoading(false);
     }
@@ -112,7 +110,6 @@ export default function FoodPreferencePage({
       dislikedCategories,
       dislikedKeywords,
       likedKeywords,
-      budgetRange,
       updatedAt: new Date().toISOString(),
     };
 
@@ -172,7 +169,9 @@ export default function FoodPreferencePage({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
-      <HeaderBar session={session} handleLogout={handleLogout} />
+      <header className="sticky top-0 z-50 p-2 bg-white/80 backdrop-blur-3xl rounded-none shadow-sm">
+        <HeaderBar session={session} handleLogout={handleLogout} />
+      </header>
 
       <main className="container mx-auto px-6 py-8">
         <div className="max-w-4xl mx-auto">
@@ -248,18 +247,6 @@ export default function FoodPreferencePage({
                   selected={likedKeywords}
                   onChange={handleLikedKeywordsChange}
                   disabled={dislikedKeywords} // 피하고 싶은 키워드는 비활성화
-                />
-              </div>
-
-              {/* 가격대 */}
-              <div className="p-6 bg-indigo-50 rounded-lg border-2 border-indigo-200">
-                <RangeInput
-                  label="💰 선호하는 가격대 (1인 평균)"
-                  min={5000}
-                  max={100000}
-                  value={budgetRange}
-                  onChange={setBudgetRange}
-                  step={5000}
                 />
               </div>
 
