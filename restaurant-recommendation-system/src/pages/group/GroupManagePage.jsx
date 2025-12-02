@@ -156,7 +156,7 @@ export default function GroupManagePage({ session, token, handleLogout }) {
           </p>
 
           {/* 그룹 이름 변경 */}
-          <div className="bg-white rounded-2xl p-6 border-2 border-indigo-200 shadow-lg mb-6">
+          <div className="bg-white rounded-2xl p-6 shadow-lg mb-6">
             <h2 className="text-xl font-bold text-gray-800 mb-4">
               그룹 이름 변경
             </h2>
@@ -176,7 +176,7 @@ export default function GroupManagePage({ session, token, handleLogout }) {
           </div>
 
           {/* 그룹 설정 */}
-          <div className="bg-white rounded-2xl p-6 border-2 border-indigo-200 shadow-lg mb-6">
+          <div className="bg-white rounded-2xl p-6 shadow-lg mb-6">
             <h2 className="text-xl font-bold text-gray-800 mb-4">그룹 설정</h2>
 
             {/* 초기화 방지 토글 */}
@@ -188,16 +188,6 @@ export default function GroupManagePage({ session, token, handleLogout }) {
                   <p className="text-sm text-gray-600">
                     새 멤버 참여 시 식당 추천 데이터 유지
                   </p>
-                </div>
-                <div className="group relative">
-                  <AlertCircle className="w-5 h-5 text-gray-400 cursor-help" />
-                  <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                    <strong>ON:</strong> 새 멤버가 참여해도 기존 식당 추천
-                    데이터가 유지됩니다.
-                    <br />
-                    <strong>OFF:</strong> 새 멤버 참여 시 식당 추천을 다시
-                    받아야 합니다.
-                  </div>
                 </div>
               </div>
               <button
@@ -212,6 +202,16 @@ export default function GroupManagePage({ session, token, handleLogout }) {
                   }`}
                 />
               </button>
+              <div className="group relative ml-2 hover:shadow-md rounded-lg">
+                  <AlertCircle className="w-5 h-5 text-gray-400 cursor-help" />
+                  <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-gray-800 text-white text-xs shadow-2xl rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                    <strong>ON:</strong> 새 멤버가 참여해도 기존 식당 추천
+                    데이터가 유지됩니다.
+                    <br />
+                    <strong>OFF:</strong> 새 멤버 참여 시 식당 추천을 다시
+                    받아야 합니다.
+                  </div>
+                </div>
             </div>
 
             {/* 그룹 참여 제한 토글 */}
@@ -223,15 +223,6 @@ export default function GroupManagePage({ session, token, handleLogout }) {
                   <p className="text-sm text-gray-600">
                     새로운 멤버의 그룹 참여 차단
                   </p>
-                </div>
-                <div className="group relative">
-                  <AlertCircle className="w-5 h-5 text-gray-400 cursor-help" />
-                  <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                    <strong>ON:</strong> 새로운 사람이 그룹 코드로 참여할 수
-                    없습니다. (계획 확정 시 유용)
-                    <br />
-                    <strong>OFF:</strong> 누구나 그룹 코드로 참여할 수 있습니다.
-                  </div>
                 </div>
               </div>
               <button
@@ -246,11 +237,20 @@ export default function GroupManagePage({ session, token, handleLogout }) {
                   }`}
                 />
               </button>
+              <div className="group relative ml-2 hover:shadow-md rounded-lg">
+                  <AlertCircle className="w-5 h-5 text-gray-400 cursor-help" />
+                  <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-gray-800 text-white text-xs shadow-2xl rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                    <strong>ON:</strong> 새로운 사람이 그룹 코드로 참여할 수
+                    없습니다. (계획 확정 시 유용)
+                    <br />
+                    <strong>OFF:</strong> 누구나 그룹 코드로 참여할 수 있습니다.
+                  </div>
+                </div>
             </div>
           </div>
 
           {/* 멤버 관리 */}
-          <div className="bg-white rounded-2xl p-6 border-2 border-indigo-200 shadow-lg mb-6">
+          <div className="bg-white rounded-2xl p-6 shadow-lg mb-6">
             <h2 className="text-xl font-bold text-gray-800 mb-4">멤버 관리</h2>
             <ul className="space-y-3">
               {group.members.map((member) => (
